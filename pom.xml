@@ -38,6 +38,7 @@
         <picocli.version>4.7.6</picocli.version>
         <jline.version>3.26.3</jline.version>
         <snakeyaml.version>2.3</snakeyaml.version>
+        <jackson.version>2.18.2</jackson.version>
         <logstash-encoder.version>7.4</logstash-encoder.version>
         <loki-logback.version>1.5.2</loki-logback.version>
         <arthas.version>4.0.2</arthas.version>
@@ -155,6 +156,11 @@
                 <groupId>org.yaml</groupId>
                 <artifactId>snakeyaml</artifactId>
                 <version>${snakeyaml.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson.version}</version>
             </dependency>
 
             <!-- 在线诊断: Arthas (仅 runtime，不打包) -->
