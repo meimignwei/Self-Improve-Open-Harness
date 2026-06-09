@@ -1,5 +1,10 @@
 /Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/agentscope/core/middleware/MiddlewareBase.java
 /Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/agentscope/core/middleware/MiddlewareContext.java
+/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/agentscope/core/tool/Tool.java
+/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/agentscope/core/tool/ToolBase.java
+/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/agentscope/core/tool/ToolCallParam.java
+/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/agentscope/core/tool/ToolParam.java
+/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/agentscope/core/tool/ToolResultBlock.java
 /Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/openharness/core/commands/CommandRegistry.java
 /Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/openharness/core/commands/OhCommand.java
 /Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/openharness/core/config/ApiKeyResolver.java
@@ -25,3 +30,6 @@
 /Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/openharness/core/persistence/model/Message.java
 /Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/openharness/core/persistence/model/ReplayEvent.java
 /Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/openharness/core/persistence/model/Session.java
+/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/openharness/core/tools/AskUserQuestionTool.java
+/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/openharness/core/tools/WebFetchTool.java
+/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/openharness/core/tools/WebSearchTool.java

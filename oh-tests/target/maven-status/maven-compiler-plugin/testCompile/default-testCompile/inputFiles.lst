@@ -1,3 +1,9 @@
 /Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-tests/src/test/java/io/openharness/unit/ApiKeyResolverTest.java
+/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-tests/src/test/java/io/openharness/unit/AskUserQuestionToolTest.java
+/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-tests/src/test/java/io/openharness/unit/CostTrackingMiddlewareTest.java
 /Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-tests/src/test/java/io/openharness/unit/ProfileManagerTest.java
+/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-tests/src/test/java/io/openharness/unit/SessionPersistenceMiddlewareTest.java
 /Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-tests/src/test/java/io/openharness/unit/SettingsLoaderTest.java
+/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-tests/src/test/java/io/openharness/unit/SystemPromptAssemblerTest.java
+/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-tests/src/test/java/io/openharness/unit/WebFetchToolTest.java
+/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-tests/src/test/java/io/openharness/unit/WebSearchToolTest.java

@@ -111,5 +111,12 @@
             <artifactId>arthas-core</artifactId>
             <scope>runtime</scope>
         </dependency>
+
+        <!-- HTML parsing for WebFetchTool -->
+        <dependency>
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>1.18.1</version>
+        </dependency>
     </dependencies>
 </project>

@@ -1,3 +1,9 @@
 io/openharness/unit/ProfileManagerTest.class
+io/openharness/unit/SystemPromptAssemblerTest.class
+io/openharness/unit/CostTrackingMiddlewareTest.class
+io/openharness/unit/WebFetchToolTest.class
 io/openharness/unit/ApiKeyResolverTest.class
 io/openharness/unit/SettingsLoaderTest.class
+io/openharness/unit/WebSearchToolTest.class
+io/openharness/unit/AskUserQuestionToolTest.class
+io/openharness/unit/SessionPersistenceMiddlewareTest.class
