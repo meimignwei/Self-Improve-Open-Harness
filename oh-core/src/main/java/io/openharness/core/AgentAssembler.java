@@ -1,11 +1,11 @@
 package io.openharness.core;
 
-import io.agentscope.core.CompactionConfig;
 import io.agentscope.core.middleware.MiddlewareBase;
 import io.agentscope.core.model.AnthropicChatModel;
 import io.agentscope.core.model.Model;
 import io.agentscope.core.tool.Toolkit;
-import io.agentscope.harness.HarnessAgent;
+import io.agentscope.harness.agent.HarnessAgent;
+import io.agentscope.harness.agent.memory.compaction.CompactionConfig;
 import io.openharness.core.config.Settings;
 import io.openharness.core.middleware.CostTrackingMiddleware;
 import io.openharness.core.middleware.SessionPersistenceMiddleware;
@@ -52,14 +52,14 @@ public class AgentAssembler {
                 .build();
 
         Toolkit toolkit = new Toolkit();
-        toolkit.registerObject(new WebSearchTool());
-        toolkit.registerObject(new WebFetchTool());
+        toolkit.registerTool(new WebSearchTool());
+        toolkit.registerTool(new WebFetchTool());
         toolkit.registerAgentTool(new AskUserQuestionTool());
 
-        List<MiddlewareBase> middleware = new ArrayList<>();
-        middleware.add(new SystemPromptAssembler(ctx.getWorkspaceDir(), settings));
-        middleware.add(new CostTrackingMiddleware());
-        middleware.add(new SessionPersistenceMiddleware(writer, sessionFactory));
+        List<MiddlewareBase> middlewares = new ArrayList<>();
+        middlewares.add(new SystemPromptAssembler(ctx.getWorkspaceDir(), settings));
+        middlewares.add(new CostTrackingMiddleware());
+        middlewares.add(new SessionPersistenceMiddleware(writer, sessionFactory));
 
         CompactionConfig compaction = CompactionConfig.builder()
                 .triggerMessages(30)
@@ -72,12 +72,12 @@ public class AgentAssembler {
                 .workspace(ctx.getWorkspaceDir())
                 .toolkit(toolkit)
                 .compaction(compaction)
-                .middleware(middleware)
+                .middlewares(middlewares)
                 .enablePlanMode()
                 .build();
 
-        log.info("Agent assembled: model={}, tools={}, middleware={}",
-                model.getModelName(), toolkit.size(), middleware.size());
+        log.info("Agent assembled: model={}, tools={}, middlewares={}",
+                model.getModelName(), toolkit.getToolNames().size(), middlewares.size());
 
         return agent;
     }

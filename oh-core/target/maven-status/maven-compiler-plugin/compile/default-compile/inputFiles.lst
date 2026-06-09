@@ -1,15 +1,3 @@
-/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/agentscope/core/CompactionConfig.java
-/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/agentscope/core/middleware/MiddlewareBase.java
-/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/agentscope/core/middleware/MiddlewareContext.java
-/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/agentscope/core/model/AnthropicChatModel.java
-/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/agentscope/core/model/Model.java
-/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/agentscope/core/tool/Tool.java
-/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/agentscope/core/tool/ToolBase.java
-/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/agentscope/core/tool/ToolCallParam.java
-/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/agentscope/core/tool/ToolParam.java
-/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/agentscope/core/tool/ToolResultBlock.java
-/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/agentscope/core/tool/Toolkit.java
-/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/agentscope/harness/HarnessAgent.java
 /Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/openharness/core/AgentAssembler.java
 /Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/openharness/core/commands/CommandRegistry.java
 /Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/openharness/core/commands/OhCommand.java

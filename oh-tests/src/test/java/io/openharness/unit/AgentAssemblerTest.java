@@ -1,6 +1,6 @@
 package io.openharness.unit;
 
-import io.agentscope.harness.HarnessAgent;
+import io.agentscope.harness.agent.HarnessAgent;
 import io.openharness.core.AgentAssembler;
 import io.openharness.core.config.Settings;
 import io.openharness.core.session.SessionContext;
@@ -47,39 +47,16 @@ class AgentAssemblerTest {
         assertThat(agent).isNotNull();
         assertThat(agent.getName()).isEqualTo("oh");
         assertThat(agent.getModel().getModelName()).isEqualTo("claude-sonnet-4-6");
-        assertThat(agent.getWorkspace()).isEqualTo(workspaceDir);
-        assertThat(agent.isPlanModeEnabled()).isTrue();
-        assertThat(agent.getToolkit().size()).isGreaterThanOrEqualTo(2);
-        assertThat(agent.getMiddleware()).hasSize(3);
-        assertThat(agent.getCompaction().getTriggerMessages()).isEqualTo(30);
-        assertThat(agent.getCompaction().getKeepMessages()).isEqualTo(10);
-    }
-
-    @Test
-    void shouldOrderMiddlewareCorrectly() {
-        HarnessAgent agent = assembler.assemble(ctx);
-
-        var middleware = agent.getMiddleware();
-        assertThat(middleware.get(0).getClass().getSimpleName())
-                .isEqualTo("SystemPromptAssembler");
-        assertThat(middleware.get(1).getClass().getSimpleName())
-                .isEqualTo("CostTrackingMiddleware");
-        assertThat(middleware.get(2).getClass().getSimpleName())
-                .isEqualTo("SessionPersistenceMiddleware");
+        assertThat(agent.getWorkspaceManager().getWorkspace()).isEqualTo(workspaceDir);
+        assertThat(agent.getToolkit().getToolNames()).hasSizeGreaterThanOrEqualTo(2);
     }
 
     @Test
     void shouldRegisterCustomTools() {
         HarnessAgent agent = assembler.assemble(ctx);
 
-        var toolkit = agent.getToolkit();
-        assertThat(toolkit.getRegisteredObjects()).hasSize(2);
-        assertThat(toolkit.getRegisteredAgentTools()).hasSize(1);
-
-        assertThat(toolkit.getRegisteredObjects().stream()
-                .map(o -> o.getClass().getSimpleName())
-                .toList())
-                .contains("WebSearchTool", "WebFetchTool");
+        var toolNames = agent.getToolkit().getToolNames();
+        assertThat(toolNames).contains("web_search", "web_fetch", "ask_user_question");
     }
 
     @Test

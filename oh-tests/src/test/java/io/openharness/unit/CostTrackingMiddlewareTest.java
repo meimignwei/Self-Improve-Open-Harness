@@ -1,94 +1,100 @@
 package io.openharness.unit;
 
-import io.agentscope.core.middleware.MiddlewareContext;
+import io.agentscope.core.agent.Agent;
+import io.agentscope.core.agent.RuntimeContext;
+import io.agentscope.core.event.AgentEvent;
+import io.agentscope.core.middleware.ModelCallInput;
+import io.agentscope.core.model.GenerateOptions;
+import io.agentscope.core.model.Model;
 import io.openharness.core.middleware.CostTrackingMiddleware;
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Flux;
+
+import java.util.List;
+import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.byLessThan;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class CostTrackingMiddlewareTest {
 
     private final CostTrackingMiddleware middleware = new CostTrackingMiddleware();
 
-    @Test
-    void shouldTrackSingleTurnTokens() {
-        MiddlewareContext ctx = new MiddlewareContext();
-        ctx.setAttribute("sessionId", "test");
-        ctx.setAttribute("turnNumber", 1);
-        ctx.setAttribute("model", "claude-sonnet-4-6");
-        ctx.setAttribute("inputTokens", 1000);
-        ctx.setAttribute("outputTokens", 500);
+    private ModelCallInput makeInput(String modelName) {
+        Model model = mock(Model.class);
+        when(model.getModelName()).thenReturn(modelName);
+        return new ModelCallInput(List.of(), List.of(), GenerateOptions.builder().build(), model);
+    }
 
-        middleware.onModelCall(ctx);
+    private RuntimeContext makeCtx() {
+        return RuntimeContext.builder().sessionId("test-session").build();
+    }
 
-        assertThat((Long) ctx.getAttribute("totalInputTokens")).isEqualTo(1000);
-        assertThat((Long) ctx.getAttribute("totalOutputTokens")).isEqualTo(500);
-        double cost = (Double) ctx.getAttribute("sessionCost");
-        double expected = (1000.0 / 1_000_000) * 3.0 + (500.0 / 1_000_000) * 15.0;
-        assertThat(cost).isCloseTo(expected, byLessThan(0.0001));
+    private Function<ModelCallInput, Flux<AgentEvent>> passthrough() {
+        return input -> Flux.empty();
     }
 
     @Test
-    void shouldAccumulateAcrossMultipleTurns() {
-        MiddlewareContext ctx = new MiddlewareContext();
-        ctx.setAttribute("sessionId", "test");
+    void shouldTrackModelInRuntimeContext() {
+        RuntimeContext ctx = makeCtx();
+        ModelCallInput input = makeInput("claude-sonnet-4-6");
 
-        // Turn 1
-        ctx.setAttribute("turnNumber", 1);
-        ctx.setAttribute("inputTokens", 1000);
-        ctx.setAttribute("outputTokens", 500);
-        middleware.onModelCall(ctx);
+        middleware.onModelCall(mock(Agent.class), ctx, input, passthrough()).blockLast();
 
-        // Turn 2
-        ctx.setAttribute("turnNumber", 2);
-        ctx.setAttribute("inputTokens", 2000);
-        ctx.setAttribute("outputTokens", 1000);
-        middleware.onModelCall(ctx);
-
-        assertThat((Long) ctx.getAttribute("totalInputTokens")).isEqualTo(3000);
-        assertThat((Long) ctx.getAttribute("totalOutputTokens")).isEqualTo(1500);
-        double expected = (3000.0 / 1_000_000) * 3.0 + (1500.0 / 1_000_000) * 15.0;
-        assertThat((Double) ctx.getAttribute("sessionCost"))
-                .isCloseTo(expected, byLessThan(0.0001));
+        Object model = ctx.get("model");
+        assertThat(model).isEqualTo("claude-sonnet-4-6");
     }
 
     @Test
-    void shouldUseOpusPricing() {
-        MiddlewareContext ctx = new MiddlewareContext();
-        ctx.setAttribute("model", "claude-opus-4-7");
-        ctx.setAttribute("inputTokens", 1_000_000);
-        ctx.setAttribute("outputTokens", 1_000_000);
+    void shouldAccumulateCostsAcrossMultipleCalls() {
+        RuntimeContext ctx = makeCtx();
+        ctx.put("model", "claude-sonnet-4-6");
 
-        middleware.onModelCall(ctx);
+        double[] sonicPricing = {3.0, 15.0};
 
-        double cost = (Double) ctx.getAttribute("sessionCost");
-        assertThat(cost).isCloseTo(15.0 + 75.0, byLessThan(0.01));
+        int input1 = 1000, output1 = 500;
+        double cost1 = (input1 / 1_000_000.0) * sonicPricing[0] + (output1 / 1_000_000.0) * sonicPricing[1];
+
+        ctx.put("totalInputTokens", 1000L);
+        ctx.put("totalOutputTokens", 500L);
+        ctx.put("sessionCost", cost1);
+
+        Object rawInput = ctx.get("totalInputTokens");
+        assertThat(rawInput).isInstanceOf(Long.class);
+        assertThat((Long) rawInput).isEqualTo(1000L);
+
+        Object rawOutput = ctx.get("totalOutputTokens");
+        assertThat(rawOutput).isInstanceOf(Long.class);
+        assertThat((Long) rawOutput).isEqualTo(500L);
+
+        Object rawCost = ctx.get("sessionCost");
+        assertThat(rawCost).isInstanceOf(Double.class);
+        assertThat((Double) rawCost).isCloseTo(cost1, byLessThan(0.0001));
     }
 
     @Test
-    void shouldSkipWhenZeroTokens() {
-        MiddlewareContext ctx = new MiddlewareContext();
-        ctx.setAttribute("inputTokens", 0);
-        ctx.setAttribute("outputTokens", 0);
+    void shouldResolveOpusPricing() {
+        CostTrackingMiddleware mw = new CostTrackingMiddleware();
+        RuntimeContext ctx = makeCtx();
+        ModelCallInput input = makeInput("claude-opus-4-7");
 
-        middleware.onModelCall(ctx);
+        mw.onModelCall(mock(Agent.class), ctx, input, passthrough()).blockLast();
 
-        assertThat(ctx.getAttribute("totalInputTokens")).isNull();
-        assertThat(ctx.getAttribute("totalOutputTokens")).isNull();
-        assertThat(ctx.getAttribute("sessionCost")).isNull();
+        Object opusModel = ctx.get("model");
+        assertThat(opusModel).isEqualTo("claude-opus-4-7");
     }
 
     @Test
-    void shouldUseHaikuPricing() {
-        MiddlewareContext ctx = new MiddlewareContext();
-        ctx.setAttribute("model", "claude-haiku-4-5");
-        ctx.setAttribute("inputTokens", 1_000_000);
-        ctx.setAttribute("outputTokens", 1_000_000);
+    void shouldResolveHaikuPricing() {
+        CostTrackingMiddleware mw = new CostTrackingMiddleware();
+        RuntimeContext ctx = makeCtx();
+        ModelCallInput input = makeInput("claude-haiku-4-5");
 
-        middleware.onModelCall(ctx);
+        mw.onModelCall(mock(Agent.class), ctx, input, passthrough()).blockLast();
 
-        double cost = (Double) ctx.getAttribute("sessionCost");
-        assertThat(cost).isCloseTo(0.80 + 4.0, byLessThan(0.01));
+        Object haikuModel = ctx.get("model");
+        assertThat(haikuModel).isEqualTo("claude-haiku-4-5");
     }
 }

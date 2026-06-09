@@ -1,10 +1,12 @@
 package io.openharness.core.middleware;
 
+import io.agentscope.core.agent.Agent;
+import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.middleware.MiddlewareBase;
-import io.agentscope.core.middleware.MiddlewareContext;
 import io.openharness.core.config.Settings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Mono;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -14,7 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
-public class SystemPromptAssembler extends MiddlewareBase {
+public class SystemPromptAssembler implements MiddlewareBase {
 
     private static final Logger log = LoggerFactory.getLogger(SystemPromptAssembler.class);
 
@@ -27,8 +29,11 @@ public class SystemPromptAssembler extends MiddlewareBase {
     }
 
     @Override
-    public void onStart(MiddlewareContext ctx) {
+    public Mono<String> onSystemPrompt(Agent agent, RuntimeContext ctx, String sysPrompt) {
         StringBuilder sb = new StringBuilder();
+        if (sysPrompt != null && !sysPrompt.isBlank()) {
+            sb.append(sysPrompt).append('\n');
+        }
 
         appendAgentsMd(sb);
         appendMemoryMd(sb);
@@ -36,11 +41,10 @@ public class SystemPromptAssembler extends MiddlewareBase {
         appendPermissions(sb);
 
         String assembled = sb.toString();
-        ctx.setAttribute("systemPrompt", assembled);
         log.debug("SystemPromptAssembler: assembled prompt of {} bytes, sessionId={}",
                 assembled.length(), ctx.getSessionId());
 
-        super.onStart(ctx);
+        return Mono.just(assembled);
     }
 
     private void appendAgentsMd(StringBuilder sb) {
@@ -49,7 +53,6 @@ public class SystemPromptAssembler extends MiddlewareBase {
         if (content != null) {
             sb.append("## Workspace Instructions (AGENTS.md)\n\n");
             sb.append(content).append('\n');
-            log.debug("AGENTS.md injected: {} bytes", content.length());
         } else {
             log.debug("AGENTS.md not found at {}, skipping", path);
         }

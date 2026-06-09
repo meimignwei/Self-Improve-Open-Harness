@@ -15,12 +15,11 @@
     <name>OpenHarness Core</name>
 
     <dependencies>
-        <!-- AgentScope 内核 (Phase 2 启用: 删除本地 stub 后恢复)
+        <!-- AgentScope 内核: HarnessAgent + AnthropicChatModel + Tools + Middleware -->
         <dependency>
             <groupId>io.agentscope</groupId>
             <artifactId>agentscope-harness</artifactId>
         </dependency>
-        -->
 
         <!-- Reactive Streams (正常由 AgentScope 传递，Phase 0 显式声明) -->
         <dependency>

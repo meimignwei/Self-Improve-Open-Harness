@@ -1,13 +1,19 @@
 package io.openharness.core.middleware;
 
+import io.agentscope.core.agent.Agent;
+import io.agentscope.core.agent.RuntimeContext;
+import io.agentscope.core.event.AgentEvent;
+import io.agentscope.core.event.ModelCallEndEvent;
 import io.agentscope.core.middleware.MiddlewareBase;
-import io.agentscope.core.middleware.MiddlewareContext;
+import io.agentscope.core.middleware.ModelCallInput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Flux;
 
 import java.util.Map;
+import java.util.function.Function;
 
-public class CostTrackingMiddleware extends MiddlewareBase {
+public class CostTrackingMiddleware implements MiddlewareBase {
 
     private static final Logger log = LoggerFactory.getLogger(CostTrackingMiddleware.class);
 
@@ -19,39 +25,45 @@ public class CostTrackingMiddleware extends MiddlewareBase {
     private static final double[] DEFAULT_PRICING = {3.0, 15.0};
 
     @Override
-    public void onModelCall(MiddlewareContext ctx) {
-        int inputTokens = safeInt(ctx.getAttribute("inputTokens"));
-        int outputTokens = safeInt(ctx.getAttribute("outputTokens"));
+    public Flux<AgentEvent> onModelCall(Agent agent, RuntimeContext ctx, ModelCallInput input,
+                                         Function<ModelCallInput, Flux<AgentEvent>> next) {
+        String modelName = input.model().getModelName();
+        log.debug("CostTrackingMiddleware: model call with {}", modelName);
+        ctx.put("model", modelName);
 
-        if (inputTokens == 0 && outputTokens == 0) {
-            log.debug("CostTrackingMiddleware: no tokens consumed, skipping");
-            super.onModelCall(ctx);
-            return;
-        }
+        return next.apply(input).doOnNext(event -> {
+            if (event instanceof ModelCallEndEvent end) {
+                var usage = end.getUsage();
+                if (usage != null) {
+                    int inputTokens = usage.getInputTokens();
+                    int outputTokens = usage.getOutputTokens();
+                    if (inputTokens > 0 || outputTokens > 0) {
+                        trackCost(ctx, modelName, inputTokens, outputTokens);
+                    }
+                }
+            }
+        });
+    }
 
-        long totalInput = safeLong(ctx.getAttribute("totalInputTokens")) + inputTokens;
-        long totalOutput = safeLong(ctx.getAttribute("totalOutputTokens")) + outputTokens;
+    private void trackCost(RuntimeContext ctx, String model, int inputTokens, int outputTokens) {
+        long totalInput = safeLong(ctx.get("totalInputTokens")) + inputTokens;
+        long totalOutput = safeLong(ctx.get("totalOutputTokens")) + outputTokens;
 
-        String model = getString(ctx.getAttribute("model"));
         double[] pricing = resolvePricing(model);
-
         double inputCost = (inputTokens / 1_000_000.0) * pricing[0];
         double outputCost = (outputTokens / 1_000_000.0) * pricing[1];
         double turnCost = inputCost + outputCost;
+        double sessionCost = safeDouble(ctx.get("sessionCost")) + turnCost;
 
-        double sessionCost = safeDouble(ctx.getAttribute("sessionCost")) + turnCost;
+        ctx.put("totalInputTokens", totalInput);
+        ctx.put("totalOutputTokens", totalOutput);
+        ctx.put("sessionCost", sessionCost);
 
-        ctx.setAttribute("totalInputTokens", totalInput);
-        ctx.setAttribute("totalOutputTokens", totalOutput);
-        ctx.setAttribute("sessionCost", sessionCost);
-
-        log.info("Turn {}: +{}/{} in/out tokens, ${} cost; session total: {}/{}, ${}",
-                ctx.getTurnNumber(), inputTokens, outputTokens,
+        log.info("Turn: +{}/{} in/out tokens, ${} cost; session total: {}/{}, ${}",
+                inputTokens, outputTokens,
                 String.format("%.4f", turnCost),
                 totalInput, totalOutput,
                 String.format("%.4f", sessionCost));
-
-        super.onModelCall(ctx);
     }
 
     private double[] resolvePricing(String model) {
@@ -76,9 +88,5 @@ public class CostTrackingMiddleware extends MiddlewareBase {
     private static double safeDouble(Object value) {
         if (value instanceof Number n) return n.doubleValue();
         return 0.0;
-    }
-
-    private static String getString(Object value) {
-        return value != null ? value.toString() : null;
     }
 }

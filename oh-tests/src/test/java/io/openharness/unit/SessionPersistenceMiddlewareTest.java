@@ -1,6 +1,9 @@
 package io.openharness.unit;
 
-import io.agentscope.core.middleware.MiddlewareContext;
+import io.agentscope.core.agent.Agent;
+import io.agentscope.core.agent.RuntimeContext;
+import io.agentscope.core.event.AgentEvent;
+import io.agentscope.core.middleware.AgentInput;
 import io.openharness.core.middleware.SessionPersistenceMiddleware;
 import io.openharness.core.persistence.AsyncPersistenceWriter;
 import org.apache.ibatis.session.SqlSessionFactory;
@@ -8,9 +11,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -26,34 +31,45 @@ class SessionPersistenceMiddlewareTest {
     @Mock
     private SqlSessionFactory sessionFactory;
 
+    @Mock
+    private Agent agent;
+
     @Test
-    void shouldEnqueueMessagesOnTurnComplete() {
+    void shouldEnqueueMessagesOnAgentComplete() {
         List<Map<String, Object>> messages = List.of(
                 Map.of("role", "user", "content", "Hello"),
                 Map.of("role", "assistant", "content", "Hi there!")
         );
 
-        MiddlewareContext ctx = new MiddlewareContext();
-        ctx.setAttribute("sessionId", "test-session");
-        ctx.setAttribute("turnNumber", 1);
-        ctx.setAttribute("turnMessages", messages);
+        RuntimeContext ctx = RuntimeContext.builder()
+                .sessionId("test-session")
+                .build();
+        ctx.put("turnNumber", 1);
+        ctx.put("turnMessages", messages);
 
         when(writer.enqueue(any(Runnable.class))).thenReturn(true);
 
         SessionPersistenceMiddleware middleware = new SessionPersistenceMiddleware(writer, sessionFactory);
-        middleware.onTurnComplete(ctx);
+        AgentInput input = new AgentInput(List.of());
+        Function<AgentInput, Flux<AgentEvent>> next = in -> Flux.empty();
+
+        middleware.onAgent(agent, ctx, input, next).blockLast();
 
         verify(writer).enqueue(any(Runnable.class));
     }
 
     @Test
     void shouldNotEnqueueWhenNoMessages() {
-        MiddlewareContext ctx = new MiddlewareContext();
-        ctx.setAttribute("sessionId", "test-session");
-        ctx.setAttribute("turnNumber", 1);
+        RuntimeContext ctx = RuntimeContext.builder()
+                .sessionId("test-session")
+                .build();
+        ctx.put("turnNumber", 1);
 
         SessionPersistenceMiddleware middleware = new SessionPersistenceMiddleware(writer, sessionFactory);
-        middleware.onTurnComplete(ctx);
+        AgentInput input = new AgentInput(List.of());
+        Function<AgentInput, Flux<AgentEvent>> next = in -> Flux.empty();
+
+        middleware.onAgent(agent, ctx, input, next).blockLast();
 
         verify(writer, never()).enqueue(any());
     }
@@ -64,15 +80,19 @@ class SessionPersistenceMiddlewareTest {
                 Map.of("role", "user", "content", "Hello")
         );
 
-        MiddlewareContext ctx = new MiddlewareContext();
-        ctx.setAttribute("sessionId", "test-session");
-        ctx.setAttribute("turnNumber", 1);
-        ctx.setAttribute("turnMessages", messages);
+        RuntimeContext ctx = RuntimeContext.builder()
+                .sessionId("test-session")
+                .build();
+        ctx.put("turnNumber", 1);
+        ctx.put("turnMessages", messages);
 
         when(writer.enqueue(any(Runnable.class))).thenReturn(false);
 
         SessionPersistenceMiddleware middleware = new SessionPersistenceMiddleware(writer, sessionFactory);
-        middleware.onTurnComplete(ctx);
+        AgentInput input = new AgentInput(List.of());
+        Function<AgentInput, Flux<AgentEvent>> next = in -> Flux.empty();
+
+        middleware.onAgent(agent, ctx, input, next).blockLast();
 
         verify(writer).enqueue(any(Runnable.class));
     }

@@ -1,8 +1,9 @@
 package io.openharness.core.tools;
 
+import io.agentscope.core.message.TextBlock;
+import io.agentscope.core.message.ToolResultBlock;
 import io.agentscope.core.tool.Tool;
 import io.agentscope.core.tool.ToolParam;
-import io.agentscope.core.tool.ToolResultBlock;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.slf4j.Logger;
@@ -102,6 +103,6 @@ public class WebFetchTool {
         metadata.put("contentLength", text.length());
         metadata.put("truncated", truncated);
 
-        return ToolResultBlock.success(sb.toString(), metadata);
+        return ToolResultBlock.of(TextBlock.builder().text(sb.toString()).build(), metadata);
     }
 }

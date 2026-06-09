@@ -1,16 +1,22 @@
 package io.openharness.unit;
 
+import io.agentscope.core.message.TextBlock;
+import io.agentscope.core.message.ToolResultBlock;
+import io.agentscope.core.message.ToolResultState;
+import io.agentscope.core.message.ToolUseBlock;
 import io.agentscope.core.tool.ToolCallParam;
-import io.agentscope.core.tool.ToolResultBlock;
 import io.openharness.core.tools.AskUserQuestionTool;
 import org.junit.jupiter.api.Test;
 
-import java.time.Duration;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class AskUserQuestionToolTest {
+
+    private static String textOf(ToolResultBlock r) {
+        return ((TextBlock) r.getOutput().get(0)).getText();
+    }
 
     @Test
     void shouldReturnAnswerForSingleSelectQuestion() {
@@ -22,11 +28,13 @@ class AskUserQuestionToolTest {
         AskUserQuestionTool tool = new AskUserQuestionTool();
         tool.setUserInputProvider((json, timeout) -> answerJson);
 
-        ToolCallParam param = new ToolCallParam("ask_user_question", Map.of("questions", questionsJson));
-        ToolResultBlock result = tool.callSync(param);
+        ToolCallParam param = ToolCallParam.builder()
+                .toolUseBlock(new ToolUseBlock("id", "ask_user_question", Map.of("questions", questionsJson)))
+                .input(Map.of("questions", questionsJson))
+                .build();
+        ToolResultBlock result = tool.callAsync(param).block();
 
-        assertThat(result.isError()).isFalse();
-        assertThat(result.content()).contains("Spring");
+        assertThat(textOf(result)).contains("Spring");
     }
 
     @Test
@@ -39,12 +47,14 @@ class AskUserQuestionToolTest {
         AskUserQuestionTool tool = new AskUserQuestionTool();
         tool.setUserInputProvider((json, timeout) -> answerJson);
 
-        ToolCallParam param = new ToolCallParam("ask_user_question", Map.of("questions", questionsJson));
-        ToolResultBlock result = tool.callSync(param);
+        ToolCallParam param = ToolCallParam.builder()
+                .toolUseBlock(new ToolUseBlock("id", "ask_user_question", Map.of("questions", questionsJson)))
+                .input(Map.of("questions", questionsJson))
+                .build();
+        ToolResultBlock result = tool.callAsync(param).block();
 
-        assertThat(result.isError()).isFalse();
-        assertThat(result.content()).contains("A");
-        assertThat(result.content()).contains("B");
+        assertThat(textOf(result)).contains("A");
+        assertThat(textOf(result)).contains("B");
     }
 
     @Test
@@ -55,10 +65,12 @@ class AskUserQuestionToolTest {
         AskUserQuestionTool tool = new AskUserQuestionTool();
         tool.setUserInputProvider((json, timeout) -> null);
 
-        ToolCallParam param = new ToolCallParam("ask_user_question", Map.of("questions", questionsJson));
-        ToolResultBlock result = tool.callSync(param);
+        ToolCallParam param = ToolCallParam.builder()
+                .toolUseBlock(new ToolUseBlock("id", "ask_user_question", Map.of("questions", questionsJson)))
+                .input(Map.of("questions", questionsJson))
+                .build();
+        ToolResultBlock result = tool.callAsync(param).block();
 
-        assertThat(result.isError()).isTrue();
-        assertThat(result.content()).contains("not respond");
+        assertThat(textOf(result)).contains("not respond");
     }
 }

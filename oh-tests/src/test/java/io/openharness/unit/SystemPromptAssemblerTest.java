@@ -1,6 +1,6 @@
 package io.openharness.unit;
 
-import io.agentscope.core.middleware.MiddlewareContext;
+import io.agentscope.core.agent.RuntimeContext;
 import io.openharness.core.config.Settings;
 import io.openharness.core.middleware.SystemPromptAssembler;
 import org.junit.jupiter.api.Test;
@@ -28,14 +28,15 @@ class SystemPromptAssemblerTest {
         Settings settings = Settings.defaults();
         settings.setAllowedPaths(List.of("/tmp", "/home"));
 
-        MiddlewareContext ctx = new MiddlewareContext();
-        ctx.setAttribute("sessionId", "test-session");
+        RuntimeContext ctx = RuntimeContext.builder()
+                .sessionId("test-session")
+                .build();
 
         SystemPromptAssembler assembler = new SystemPromptAssembler(workspaceRoot, settings);
-        assembler.onStart(ctx);
+        String prompt = assembler.onSystemPrompt(null, ctx, "Default sys prompt").block();
 
-        String prompt = (String) ctx.getAttribute("systemPrompt");
         assertThat(prompt).isNotNull();
+        assertThat(prompt).contains("Default sys prompt");
         assertThat(prompt).contains("AGENTS.md");
         assertThat(prompt).contains("You are a helpful assistant.");
         assertThat(prompt).contains("MEMORY.md");
@@ -50,11 +51,10 @@ class SystemPromptAssemblerTest {
     @Test
     void shouldNotFailWhenOptionalFilesMissing() {
         Settings settings = Settings.defaults();
-        MiddlewareContext ctx = new MiddlewareContext();
+        RuntimeContext ctx = RuntimeContext.builder().sessionId("test-session").build();
         SystemPromptAssembler assembler = new SystemPromptAssembler(workspaceRoot, settings);
-        assembler.onStart(ctx);
+        String prompt = assembler.onSystemPrompt(null, ctx, null).block();
 
-        String prompt = (String) ctx.getAttribute("systemPrompt");
         assertThat(prompt).isNotNull();
     }
 
@@ -67,12 +67,12 @@ class SystemPromptAssemblerTest {
         Files.writeString(workspaceRoot.resolve("MEMORY.md"), large.toString());
 
         Settings settings = Settings.defaults();
-        settings.setMaxContextTokens(10); // budget = 20 bytes
+        settings.setMaxContextTokens(10);
 
-        MiddlewareContext ctx = new MiddlewareContext();
-        new SystemPromptAssembler(workspaceRoot, settings).onStart(ctx);
+        RuntimeContext ctx = RuntimeContext.builder().sessionId("test-session").build();
+        String prompt = new SystemPromptAssembler(workspaceRoot, settings)
+                .onSystemPrompt(null, ctx, null).block();
 
-        String prompt = (String) ctx.getAttribute("systemPrompt");
         assertThat(prompt).contains("truncated to fit token budget");
         assertThat(prompt.length()).isLessThan(large.length());
     }
@@ -85,10 +85,10 @@ class SystemPromptAssemblerTest {
         Settings settings = Settings.defaults();
         settings.setMaxContextTokens(100_000);
 
-        MiddlewareContext ctx = new MiddlewareContext();
-        new SystemPromptAssembler(workspaceRoot, settings).onStart(ctx);
+        RuntimeContext ctx = RuntimeContext.builder().sessionId("test-session").build();
+        String prompt = new SystemPromptAssembler(workspaceRoot, settings)
+                .onSystemPrompt(null, ctx, null).block();
 
-        String prompt = (String) ctx.getAttribute("systemPrompt");
         assertThat(prompt).contains(content);
         assertThat(prompt).doesNotContain("truncated");
     }
@@ -98,20 +98,20 @@ class SystemPromptAssemblerTest {
         Settings settings = Settings.defaults();
         settings.setAllowedPaths(List.of());
 
-        MiddlewareContext ctx = new MiddlewareContext();
-        new SystemPromptAssembler(workspaceRoot, settings).onStart(ctx);
+        RuntimeContext ctx = RuntimeContext.builder().sessionId("test-session").build();
+        String prompt = new SystemPromptAssembler(workspaceRoot, settings)
+                .onSystemPrompt(null, ctx, null).block();
 
-        String prompt = (String) ctx.getAttribute("systemPrompt");
         assertThat(prompt).doesNotContain("Permission Policy");
     }
 
     @Test
     void shouldOmitSkillsWhenDirectoryNotFound() {
         Settings settings = Settings.defaults();
-        MiddlewareContext ctx = new MiddlewareContext();
-        new SystemPromptAssembler(workspaceRoot, settings).onStart(ctx);
+        RuntimeContext ctx = RuntimeContext.builder().sessionId("test-session").build();
+        String prompt = new SystemPromptAssembler(workspaceRoot, settings)
+                .onSystemPrompt(null, ctx, null).block();
 
-        String prompt = (String) ctx.getAttribute("systemPrompt");
         assertThat(prompt).doesNotContain("Available Skills");
     }
 }

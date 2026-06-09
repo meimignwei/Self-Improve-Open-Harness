@@ -1,5 +1,7 @@
 package io.openharness.cli.tui;
 
+import io.agentscope.core.agent.RuntimeContext;
+import io.agentscope.core.message.UserMessage;
 import io.openharness.cli.session.SessionManager;
 import io.openharness.core.AgentAssembler;
 import io.openharness.core.commands.CommandRegistry;
@@ -7,6 +9,7 @@ import io.openharness.core.session.SessionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class TerminalUI {
@@ -59,8 +62,24 @@ public class TerminalUI {
                 if (input.startsWith("/")) {
                     handleSlashCommand(input);
                 } else {
-                    System.out.println(AnsiRenderer.yellow("Agent processing... (ReAct loop stub — Phase 4+)"));
-                    System.out.println(AnsiRenderer.dim("  Input: " + input));
+                    System.out.println(AnsiRenderer.dim("Processing..."));
+                    try {
+                        RuntimeContext runtimeCtx = buildRuntimeContext();
+                        var response = agent.call(
+                                List.of(new UserMessage(input)),
+                                runtimeCtx
+                        ).block();
+
+                        if (response != null) {
+                            String text = response.getTextContent();
+                            if (text != null && !text.isBlank()) {
+                                System.out.println(OutputFormatter.format(text));
+                            }
+                        }
+                    } catch (Exception e) {
+                        log.error("Agent call failed", e);
+                        System.out.println(AnsiRenderer.yellow("Error: " + e.getMessage()));
+                    }
                 }
             }
         }
@@ -73,10 +92,33 @@ public class TerminalUI {
     public int runOnce(String initialPrompt) {
         var agent = assembler.assemble(ctx);
         System.out.println(AnsiRenderer.dim("Running in single-prompt mode with: " + agent.getModel().getModelName()));
-        System.out.println(AnsiRenderer.yellow("Agent processing... (ReAct loop stub — Phase 4+)"));
-        System.out.println(AnsiRenderer.dim("  Prompt: " + initialPrompt));
+
+        try {
+            RuntimeContext runtimeCtx = buildRuntimeContext();
+            var response = agent.call(
+                    List.of(new UserMessage(initialPrompt)),
+                    runtimeCtx
+            ).block();
+
+            if (response != null) {
+                String text = response.getTextContent();
+                if (text != null && !text.isBlank()) {
+                    System.out.println(OutputFormatter.format(text));
+                }
+            }
+        } catch (Exception e) {
+            log.error("Agent call failed", e);
+            System.out.println(AnsiRenderer.yellow("Error: " + e.getMessage()));
+        }
+
         sessionManager.flushAll();
         return 0;
+    }
+
+    private RuntimeContext buildRuntimeContext() {
+        return RuntimeContext.builder()
+                .sessionId(ctx.getSessionId())
+                .build();
     }
 
     private void handleSlashCommand(String input) {

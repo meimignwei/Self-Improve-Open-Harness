@@ -2,9 +2,10 @@ package io.openharness.core.tools;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.agentscope.core.message.TextBlock;
+import io.agentscope.core.message.ToolResultBlock;
 import io.agentscope.core.tool.Tool;
 import io.agentscope.core.tool.ToolParam;
-import io.agentscope.core.tool.ToolResultBlock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,6 +16,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -73,7 +75,7 @@ public class WebSearchTool {
     }
 
     private Map<String, Object> buildRequestBody(String query, List<String> allowedDomains) {
-        Map<String, Object> body = new java.util.LinkedHashMap<>();
+        Map<String, Object> body = new LinkedHashMap<>();
         body.put("query", query);
         body.put("api_key", apiKey);
         body.put("search_depth", "basic");
@@ -126,7 +128,7 @@ public class WebSearchTool {
             JsonNode root = mapper.readTree(response.body());
             JsonNode results = root.get("results");
             if (results == null || !results.isArray() || results.isEmpty()) {
-                return ToolResultBlock.success("No results found for: \"" + query + "\"");
+                return ToolResultBlock.text("No results found for: \"" + query + "\"");
             }
 
             StringBuilder sb = new StringBuilder("## Web Search Results for: \"")
@@ -137,12 +139,12 @@ public class WebSearchTool {
                 String title = r.has("title") ? r.get("title").asText() : "";
                 String url = r.has("url") ? r.get("url").asText() : "";
                 String content = r.has("content") ? r.get("content").asText() : "";
-                sb.append(idx++).append(". [").append(title).append("](").append(url).append(")\n");
+                sb.append(idx++).append(" [").append(title).append("](").append(url).append(")\n");
                 sb.append("   ").append(content).append("\n\n");
             }
 
             Map<String, Object> metadata = Collections.singletonMap("resultCount", results.size());
-            return ToolResultBlock.success(sb.toString(), metadata);
+            return ToolResultBlock.of(TextBlock.builder().text(sb.toString()).build(), metadata);
         } catch (Exception e) {
             log.error("Failed to parse search response: {}", e.getMessage());
             return ToolResultBlock.error("Failed to parse search response");

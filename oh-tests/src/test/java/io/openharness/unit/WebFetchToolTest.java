@@ -1,6 +1,7 @@
 package io.openharness.unit;
 
-import io.agentscope.core.tool.ToolResultBlock;
+import io.agentscope.core.message.TextBlock;
+import io.agentscope.core.message.ToolResultBlock;
 import io.openharness.core.tools.WebFetchTool;
 import org.junit.jupiter.api.Test;
 
@@ -19,6 +20,10 @@ import static org.mockito.Mockito.when;
 
 class WebFetchToolTest {
 
+    private static String textOf(ToolResultBlock r) {
+        return ((TextBlock) r.getOutput().get(0)).getText();
+    }
+
     @Test
     @SuppressWarnings("unchecked")
     void shouldFetchAndExtractContent() throws Exception {
@@ -34,10 +39,9 @@ class WebFetchToolTest {
         WebFetchTool tool = new WebFetchTool(httpClient);
         ToolResultBlock result = tool.webFetch("https://example.com", "extract text");
 
-        assertThat(result.isError()).isFalse();
-        assertThat(result.content()).contains("Hello World");
-        assertThat(result.content()).contains("Second paragraph");
-        assertThat(result.content()).contains("https://example.com");
+        assertThat(textOf(result)).contains("Hello World");
+        assertThat(textOf(result)).contains("Second paragraph");
+        assertThat(textOf(result)).contains("https://example.com");
     }
 
     @Test
@@ -61,9 +65,8 @@ class WebFetchToolTest {
         WebFetchTool tool = new WebFetchTool(httpClient);
         ToolResultBlock result = tool.webFetch("https://example.com", "extract");
 
-        assertThat(result.isError()).isFalse();
-        assertThat(result.content()).contains("truncated");
-        assertThat(result.metadata().get("truncated")).isEqualTo(true);
+        assertThat(textOf(result)).contains("truncated");
+        assertThat(result.getMetadata().get("truncated")).isEqualTo(true);
     }
 
     @Test
@@ -76,8 +79,7 @@ class WebFetchToolTest {
         WebFetchTool tool = new WebFetchTool(httpClient);
         ToolResultBlock result = tool.webFetch("https://example.com", "extract");
 
-        assertThat(result.isError()).isTrue();
-        assertThat(result.content()).contains("timed out");
+        assertThat(textOf(result)).contains("timed out");
     }
 
     @Test
@@ -93,8 +95,7 @@ class WebFetchToolTest {
         WebFetchTool tool = new WebFetchTool(httpClient);
         ToolResultBlock result = tool.webFetch("https://example.com/notfound", "extract");
 
-        assertThat(result.isError()).isTrue();
-        assertThat(result.content()).contains("404");
+        assertThat(textOf(result)).contains("404");
     }
 
     private HttpHeaders htmlHeaders() {

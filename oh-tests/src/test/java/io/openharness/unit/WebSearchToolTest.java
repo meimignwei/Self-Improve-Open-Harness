@@ -1,16 +1,14 @@
 package io.openharness.unit;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.agentscope.core.tool.ToolResultBlock;
+import io.agentscope.core.message.TextBlock;
+import io.agentscope.core.message.ToolResultBlock;
 import io.openharness.core.tools.WebSearchTool;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.util.Collections;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -20,6 +18,10 @@ import static org.mockito.Mockito.when;
 class WebSearchToolTest {
 
     private final ObjectMapper mapper = new ObjectMapper();
+
+    private static String textOf(ToolResultBlock r) {
+        return ((TextBlock) r.getOutput().get(0)).getText();
+    }
 
     @Test
     @SuppressWarnings("unchecked")
@@ -35,9 +37,8 @@ class WebSearchToolTest {
         WebSearchTool tool = new WebSearchTool(httpClient, mapper, "test-key");
         ToolResultBlock result = tool.webSearch("test", null);
 
-        assertThat(result.isError()).isFalse();
-        assertThat(result.content()).contains("Test");
-        assertThat(result.content()).contains("https://example.com");
+        assertThat(textOf(result)).contains("Test");
+        assertThat(textOf(result)).contains("https://example.com");
     }
 
     @Test
@@ -58,8 +59,7 @@ class WebSearchToolTest {
         WebSearchTool tool = new WebSearchTool(httpClient, mapper, "test-key");
         ToolResultBlock result = tool.webSearch("retry test", null);
 
-        assertThat(result.isError()).isFalse();
-        assertThat(result.content()).contains("OK");
+        assertThat(textOf(result)).contains("OK");
     }
 
     @Test
@@ -75,8 +75,7 @@ class WebSearchToolTest {
         WebSearchTool tool = new WebSearchTool(httpClient, mapper, "test-key");
         ToolResultBlock result = tool.webSearch("fail test", null);
 
-        assertThat(result.isError()).isTrue();
-        assertThat(result.content()).contains("failed");
+        assertThat(textOf(result)).contains("failed");
     }
 
     @Test
@@ -85,7 +84,6 @@ class WebSearchToolTest {
         WebSearchTool tool = new WebSearchTool(httpClient, mapper, null);
         ToolResultBlock result = tool.webSearch("test", null);
 
-        assertThat(result.isError()).isTrue();
-        assertThat(result.content()).contains("TAVILY_API_KEY");
+        assertThat(textOf(result)).contains("TAVILY_API_KEY");
     }
 }
