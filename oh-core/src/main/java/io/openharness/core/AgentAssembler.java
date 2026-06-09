@@ -1,12 +1,22 @@
 package io.openharness.core;
 
+import io.agentscope.core.agent.RuntimeContext;
 import io.agentscope.core.middleware.MiddlewareBase;
 import io.agentscope.core.model.AnthropicChatModel;
 import io.agentscope.core.model.Model;
 import io.agentscope.core.model.OpenAIChatModel;
+import io.agentscope.core.skill.repository.AgentSkillRepository;
 import io.agentscope.core.tool.Toolkit;
 import io.agentscope.harness.agent.HarnessAgent;
+import io.agentscope.harness.agent.filesystem.AbstractFilesystem;
+import io.agentscope.harness.agent.filesystem.local.LocalFilesystem;
 import io.agentscope.harness.agent.memory.compaction.CompactionConfig;
+import io.agentscope.harness.agent.middleware.SkillUsageMiddleware;
+import io.agentscope.harness.agent.skill.WorkspaceSkillRepository;
+import io.agentscope.harness.agent.skill.curator.SkillUsageStore;
+import io.agentscope.harness.agent.tool.SkillManageConfig;
+import io.agentscope.harness.agent.tools.McpServerConfig;
+import io.agentscope.harness.agent.tools.McpServerRegistrar;
 import io.openharness.core.config.Settings;
 import io.openharness.core.middleware.CostTrackingMiddleware;
 import io.openharness.core.middleware.SessionPersistenceMiddleware;
@@ -20,8 +30,12 @@ import org.apache.ibatis.session.SqlSessionFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Supplier;
 
 public class AgentAssembler {
 
@@ -83,6 +97,53 @@ public class AgentAssembler {
         middlewares.add(new CostTrackingMiddleware());
         middlewares.add(new SessionPersistenceMiddleware(writer, sessionFactory));
 
+        // ── Skills ──
+        List<AgentSkillRepository> skillRepos = new ArrayList<>();
+
+        if (!Boolean.FALSE.equals(settings.isSkillEnabled())) {
+            Path workspacePath = ctx.getWorkspaceDir();
+            AbstractFilesystem fs = new LocalFilesystem(workspacePath);
+
+            Supplier<RuntimeContext> ctxSupplier = () ->
+                    RuntimeContext.builder().sessionId(ctx.getSessionId()).build();
+
+            WorkspaceSkillRepository workspaceSkillRepo = new WorkspaceSkillRepository(
+                    fs, ".claude/skills", ctxSupplier);
+            skillRepos.add(workspaceSkillRepo);
+
+            SkillUsageStore usageStore = new SkillUsageStore(fs);
+            middlewares.add(new SkillUsageMiddleware(usageStore));
+
+            // 全局 skills 目录 (~/.claude/skills)
+            Path globalSkills = Path.of(System.getProperty("user.home"), ".claude", "skills");
+            if (Files.isDirectory(globalSkills)) {
+                AbstractFilesystem globalFs = new LocalFilesystem(
+                        globalSkills.getParent());
+                WorkspaceSkillRepository globalRepo = new WorkspaceSkillRepository(
+                        globalFs, "skills", ctxSupplier);
+                skillRepos.add(globalRepo);
+            }
+
+            log.info("Skills enabled: {} workspace repos", skillRepos.size());
+        }
+
+        // ── MCP ──
+        Path mcpConfigPath = ctx.getWorkspaceDir().resolve(".oh/mcp.json");
+        if (Files.exists(mcpConfigPath)) {
+            try {
+                com.fasterxml.jackson.databind.ObjectMapper mapper =
+                        new com.fasterxml.jackson.databind.ObjectMapper();
+                Map<String, McpServerConfig> mcpServers = mapper.readValue(
+                        mcpConfigPath.toFile(),
+                        mapper.getTypeFactory().constructMapType(
+                                Map.class, String.class, McpServerConfig.class));
+                McpServerRegistrar.register(toolkit, mcpServers);
+                log.info("MCP servers registered: {}", mcpServers.keySet());
+            } catch (Exception e) {
+                log.warn("Failed to load MCP config from {}: {}", mcpConfigPath, e.getMessage());
+            }
+        }
+
         CompactionConfig compaction = CompactionConfig.builder()
                 .triggerMessages(30)
                 .keepMessages(10)
@@ -95,11 +156,14 @@ public class AgentAssembler {
                 .toolkit(toolkit)
                 .compaction(compaction)
                 .middlewares(middlewares)
+                .skillRepositories(skillRepos)
+                .enableSkillManageTool(SkillManageConfig.defaults())
                 .enablePlanMode()
                 .build();
 
-        log.info("Agent assembled: model={}, tools={}, middlewares={}",
-                model.getModelName(), toolkit.getToolNames().size(), middlewares.size());
+        log.info("Agent assembled: model={}, tools={}, skills={}, middlewares={}",
+                model.getModelName(), toolkit.getToolNames().size(),
+                skillRepos.size(), middlewares.size());
 
         return agent;
     }

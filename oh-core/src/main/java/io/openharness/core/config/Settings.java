@@ -42,6 +42,10 @@ public class Settings {
     private int maxContextTokens;
     private Boolean autoCompaction;
 
+    // ── Skills ──
+    private Boolean skillEnabled;
+    private String skillsDir;
+
     // ── Permission ──
     private Boolean permissionCheck;
     private List<String> allowedPaths;
@@ -65,6 +69,7 @@ public class Settings {
         s.metricsPort = 8080;
         s.maxContextTokens = 100_000;
         s.autoCompaction = true;
+        s.skillEnabled = true;
         s.permissionCheck = true;
         return s;
     }
@@ -92,6 +97,8 @@ public class Settings {
         if (source.metricsPort != 0) this.metricsPort = source.metricsPort;
         if (source.maxContextTokens != 0) this.maxContextTokens = source.maxContextTokens;
         if (source.autoCompaction != null) this.autoCompaction = source.autoCompaction;
+        if (source.skillEnabled != null) this.skillEnabled = source.skillEnabled;
+        if (source.skillsDir != null) this.skillsDir = source.skillsDir;
         if (source.permissionCheck != null) this.permissionCheck = source.permissionCheck;
         if (source.allowedPaths != null && !source.allowedPaths.isEmpty()) this.allowedPaths = source.allowedPaths;
     }
@@ -151,6 +158,12 @@ public class Settings {
 
     public Boolean isAutoCompaction() { return autoCompaction; }
     public void setAutoCompaction(Boolean autoCompaction) { this.autoCompaction = autoCompaction; }
+
+    public Boolean isSkillEnabled() { return skillEnabled; }
+    public void setSkillEnabled(Boolean skillEnabled) { this.skillEnabled = skillEnabled; }
+
+    public String getSkillsDir() { return skillsDir; }
+    public void setSkillsDir(String skillsDir) { this.skillsDir = skillsDir; }
 
     public Boolean isPermissionCheck() { return permissionCheck; }
     public void setPermissionCheck(Boolean permissionCheck) { this.permissionCheck = permissionCheck; }
