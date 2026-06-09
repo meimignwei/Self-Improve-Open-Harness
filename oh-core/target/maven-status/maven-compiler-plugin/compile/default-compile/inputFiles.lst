@@ -2,7 +2,11 @@
 /Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/agentscope/core/middleware/MiddlewareContext.java
 /Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/openharness/core/commands/CommandRegistry.java
 /Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/openharness/core/commands/OhCommand.java
+/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/openharness/core/config/ApiKeyResolver.java
 /Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/openharness/core/config/DataSourceConfig.java
+/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/openharness/core/config/ProfileManager.java
+/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/openharness/core/config/Settings.java
+/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/openharness/core/config/SettingsLoader.java
 /Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/openharness/core/middleware/CostTrackingMiddleware.java
 /Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/openharness/core/middleware/SessionPersistenceMiddleware.java
 /Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/openharness/core/middleware/SystemPromptAssembler.java

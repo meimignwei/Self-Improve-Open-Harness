@@ -7,6 +7,7 @@ io/openharness/core/persistence/model/InteractionRecord.class
 io/openharness/core/observability/HealthChecker$HealthReport.class
 io/openharness/core/observability/SessionRecorder.class
 io/agentscope/core/middleware/MiddlewareContext.class
+io/openharness/core/config/ProfileManager.class
 io/openharness/core/persistence/mapper/MessageMapper.class
 io/openharness/core/persistence/model/Session.class
 io/agentscope/core/middleware/MiddlewareBase.class
@@ -23,4 +24,7 @@ io/openharness/core/commands/CommandRegistry.class
 io/openharness/core/observability/HealthChecker.class
 io/openharness/core/persistence/JsonTypeHandler.class
 io/openharness/core/persistence/mapper/InteractionMapper.class
+io/openharness/core/config/Settings.class
+io/openharness/core/config/ApiKeyResolver.class
+io/openharness/core/config/SettingsLoader.class
 io/openharness/core/observability/AgentTracing.class
