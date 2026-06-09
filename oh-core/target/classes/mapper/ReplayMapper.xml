@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="io.openharness.core.persistence.mapper.ReplayMapper">
+
+    <resultMap id="replayEventResult" type="io.openharness.core.persistence.model.ReplayEvent">
+        <id property="id" column="id"/>
+        <result property="sessionId" column="session_id"/>
+        <result property="turnNumber" column="turn_number"/>
+        <result property="eventType" column="event_type"/>
+        <result property="requestJson" column="request_json"/>
+        <result property="responseJson" column="response_json"/>
+        <result property="toolArgsJson" column="tool_args_json"/>
+        <result property="toolResultJson" column="tool_result_json"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <select id="findBySessionId" resultMap="replayEventResult">
+        SELECT * FROM replay_events WHERE session_id = #{sessionId}
+        ORDER BY turn_number, created_at
+    </select>
+
+    <insert id="insert">
+        INSERT INTO replay_events (session_id, turn_number, event_type,
+            request_json, response_json, tool_args_json, tool_result_json, created_at)
+        VALUES (#{sessionId}, #{turnNumber}, #{eventType},
+            #{requestJson}, #{responseJson}, #{toolArgsJson}, #{toolResultJson}, #{createdAt})
+    </insert>
+</mapper>

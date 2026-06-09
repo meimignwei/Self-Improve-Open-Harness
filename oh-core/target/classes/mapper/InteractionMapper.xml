@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="io.openharness.core.persistence.mapper.InteractionMapper">
+
+    <resultMap id="interactionResult" type="io.openharness.core.persistence.model.InteractionRecord">
+        <id property="requestId" column="request_id"/>
+        <result property="sessionId" column="session_id"/>
+        <result property="timestamp" column="timestamp"/>
+        <result property="userIntent" column="user_intent"/>
+        <result property="summary" column="summary"/>
+        <result property="inputTokens" column="input_tokens"/>
+        <result property="contextTokens" column="context_tokens"/>
+        <result property="sentimentScore" column="sentiment_score"/>
+        <result property="sentimentLabel" column="sentiment_label"/>
+        <result property="turns" column="turns"/>
+        <result property="toolCalls" column="tool_calls"/>
+        <result property="toolsFailed" column="tools_failed"/>
+        <result property="toolsUsed" column="tools_used"
+                typeHandler="io.openharness.core.persistence.JsonTypeHandler"/>
+        <result property="durationMs" column="duration_ms"/>
+        <result property="cost" column="cost"/>
+        <result property="permissionDenials" column="permission_denials"/>
+        <result property="compactionCount" column="compaction_count"/>
+        <result property="modelSwitchedTo" column="model_switched_to"/>
+        <result property="firstTurnCorrect" column="first_turn_correct"/>
+        <result property="taskCompleted" column="task_completed"/>
+        <result property="userCorrections" column="user_corrections"/>
+        <result property="userAccepted" column="user_accepted"/>
+        <result property="userRating" column="user_rating"/>
+        <result property="fallbackTriggered" column="fallback_triggered"/>
+        <result property="evolutionVersion" column="evolution_version"/>
+        <result property="skillsUsed" column="skills_used"
+                typeHandler="io.openharness.core.persistence.JsonTypeHandler"/>
+        <result property="evolutionRelated" column="evolution_related"/>
+    </resultMap>
+
+    <select id="findBySessionId" resultMap="interactionResult">
+        SELECT * FROM interaction_records WHERE session_id = #{sessionId}
+        ORDER BY timestamp
+    </select>
+
+    <select id="findByEvolutionVersion" resultMap="interactionResult">
+        SELECT * FROM interaction_records WHERE evolution_version = #{evolutionVersion}
+        ORDER BY timestamp
+    </select>
+
+    <insert id="insert">
+        INSERT INTO interaction_records (
+            request_id, session_id, timestamp,
+            user_intent, summary, input_tokens, context_tokens,
+            sentiment_score, sentiment_label,
+            turns, tool_calls, tools_failed, tools_used, duration_ms, cost,
+            permission_denials, compaction_count, model_switched_to,
+            first_turn_correct, task_completed, user_corrections, user_accepted, user_rating, fallback_triggered,
+            evolution_version, skills_used, evolution_related
+        ) VALUES (
+            #{requestId}, #{sessionId}, #{timestamp},
+            #{userIntent}, #{summary}, #{inputTokens}, #{contextTokens},
+            #{sentimentScore}, #{sentimentLabel},
+            #{turns}, #{toolCalls}, #{toolsFailed},
+            #{toolsUsed, typeHandler=io.openharness.core.persistence.JsonTypeHandler},
+            #{durationMs}, #{cost},
+            #{permissionDenials}, #{compactionCount}, #{modelSwitchedTo},
+            #{firstTurnCorrect}, #{taskCompleted}, #{userCorrections}, #{userAccepted}, #{userRating}, #{fallbackTriggered},
+            #{evolutionVersion},
+            #{skillsUsed, typeHandler=io.openharness.core.persistence.JsonTypeHandler},
+            #{evolutionRelated}
+        )
+    </insert>
+</mapper>
