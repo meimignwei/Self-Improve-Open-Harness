@@ -1,9 +1,0 @@
-io/openharness/cli/commands/ConfigCommand.class
-io/openharness/cli/session/SessionManager.class
-io/openharness/cli/OhMain.class
-io/openharness/cli/tui/AnsiRenderer.class
-io/openharness/cli/tui/TerminalUI.class
-io/openharness/cli/commands/HealthCommand.class
-io/openharness/cli/tui/OutputFormatter.class
-io/openharness/cli/commands/ClearCommand.class
-io/openharness/cli/commands/ModelCommand.class
