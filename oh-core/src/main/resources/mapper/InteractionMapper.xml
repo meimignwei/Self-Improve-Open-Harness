@@ -35,12 +35,12 @@
         <result property="evolutionRelated" column="evolution_related"/>
     </resultMap>
 
-    <select id="findBySessionId" resultMap="interactionResult">
+    <select id="findBySessionId" resultType="io.openharness.core.persistence.model.InteractionRecord">
         SELECT * FROM interaction_records WHERE session_id = #{sessionId}
         ORDER BY timestamp
     </select>
 
-    <select id="findByEvolutionVersion" resultMap="interactionResult">
+    <select id="findByEvolutionVersion" resultType="io.openharness.core.persistence.model.InteractionRecord">
         SELECT * FROM interaction_records WHERE evolution_version = #{evolutionVersion}
         ORDER BY timestamp
     </select>

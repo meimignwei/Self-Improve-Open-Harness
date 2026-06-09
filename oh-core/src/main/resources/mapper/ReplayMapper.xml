@@ -15,7 +15,7 @@
         <result property="createdAt" column="created_at"/>
     </resultMap>
 
-    <select id="findBySessionId" resultMap="replayEventResult">
+    <select id="findBySessionId" resultType="io.openharness.core.persistence.model.ReplayEvent">
         SELECT * FROM replay_events WHERE session_id = #{sessionId}
         ORDER BY turn_number, created_at
     </select>

@@ -3,21 +3,11 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="io.openharness.core.persistence.mapper.SessionMapper">
 
-    <resultMap id="sessionResult" type="io.openharness.core.persistence.model.Session">
-        <id property="id" column="id"/>
-        <result property="status" column="status"/>
-        <result property="model" column="model"/>
-        <result property="maxTurns" column="max_turns"/>
-        <result property="cost" column="cost"/>
-        <result property="createdAt" column="created_at"/>
-        <result property="updatedAt" column="updated_at"/>
-    </resultMap>
-
-    <select id="findById" resultMap="sessionResult">
+    <select id="findById" resultType="io.openharness.core.persistence.model.Session">
         SELECT * FROM sessions WHERE id = #{id}
     </select>
 
-    <select id="findAll" resultMap="sessionResult">
+    <select id="findAll" resultType="io.openharness.core.persistence.model.Session">
         SELECT * FROM sessions ORDER BY updated_at DESC
     </select>
 
