@@ -50,15 +50,19 @@ public class OhMain implements Runnable {
 
     @Override
     public void run() {
-        Settings settings = new SettingsLoader().loadDefaults();
+        Settings settings = new SettingsLoader().load();
+        String provider = settings.getProvider() != null ? settings.getProvider() : "anthropic";
 
         if (model != null) {
-            String resolved = switch (model.toLowerCase()) {
-                case "sonnet" -> "claude-sonnet-4-6";
-                case "opus" -> "claude-opus-4-7";
-                case "haiku" -> "claude-haiku-4-5";
-                default -> model;
-            };
+            String resolved = model;
+            if ("anthropic".equalsIgnoreCase(provider)) {
+                resolved = switch (model.toLowerCase()) {
+                    case "sonnet" -> "claude-sonnet-4-6";
+                    case "opus" -> "claude-opus-4-7";
+                    case "haiku" -> "claude-haiku-4-5";
+                    default -> model;
+                };
+            }
             settings.setModel(resolved);
         }
 

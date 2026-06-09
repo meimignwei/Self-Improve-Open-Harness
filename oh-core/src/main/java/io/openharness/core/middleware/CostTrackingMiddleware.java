@@ -17,12 +17,19 @@ public class CostTrackingMiddleware implements MiddlewareBase {
 
     private static final Logger log = LoggerFactory.getLogger(CostTrackingMiddleware.class);
 
+    // {input, output} prices per 1M tokens in USD
     private static final Map<String, double[]> MODEL_PRICING = Map.of(
             "sonnet", new double[]{3.0, 15.0},
             "opus", new double[]{15.0, 75.0},
-            "haiku", new double[]{0.80, 4.0}
+            "haiku", new double[]{0.80, 4.0},
+            "deepseek", new double[]{0.27, 1.10},
+            "deepseek-chat", new double[]{0.27, 1.10},
+            "moonshot", new double[]{0.60, 1.20},
+            "moonshot-v1-8k", new double[]{0.60, 1.20},
+            "moonshot-v1-32k", new double[]{1.20, 2.40},
+            "moonshot-v1-128k", new double[]{5.00, 10.00}
     );
-    private static final double[] DEFAULT_PRICING = {3.0, 15.0};
+    private static final double[] DEFAULT_PRICING = {1.0, 3.0};
 
     @Override
     public Flux<AgentEvent> onModelCall(Agent agent, RuntimeContext ctx, ModelCallInput input,
@@ -72,6 +79,12 @@ public class CostTrackingMiddleware implements MiddlewareBase {
         if (lower.contains("opus")) return MODEL_PRICING.get("opus");
         if (lower.contains("haiku")) return MODEL_PRICING.get("haiku");
         if (lower.contains("sonnet")) return MODEL_PRICING.get("sonnet");
+        if (lower.contains("deepseek")) return MODEL_PRICING.get("deepseek");
+        if (lower.contains("moonshot")) {
+            if (lower.contains("128k")) return MODEL_PRICING.get("moonshot-v1-128k");
+            if (lower.contains("32k")) return MODEL_PRICING.get("moonshot-v1-32k");
+            return MODEL_PRICING.get("moonshot");
+        }
         return DEFAULT_PRICING;
     }
 

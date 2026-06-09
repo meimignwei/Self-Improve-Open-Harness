@@ -3,6 +3,7 @@ package io.openharness.core;
 import io.agentscope.core.middleware.MiddlewareBase;
 import io.agentscope.core.model.AnthropicChatModel;
 import io.agentscope.core.model.Model;
+import io.agentscope.core.model.OpenAIChatModel;
 import io.agentscope.core.tool.Toolkit;
 import io.agentscope.harness.agent.HarnessAgent;
 import io.agentscope.harness.agent.memory.compaction.CompactionConfig;
@@ -46,10 +47,31 @@ public class AgentAssembler {
     public HarnessAgent assemble(SessionContext ctx) {
         Settings settings = ctx.getSettings();
 
-        Model model = AnthropicChatModel.builder()
-                .apiKey(settings.getApiKey())
-                .modelName(ctx.getModel() != null ? ctx.getModel() : settings.getModel())
-                .build();
+        String provider = settings.getProvider() != null ? settings.getProvider() : "anthropic";
+        String modelName = ctx.getModel() != null ? ctx.getModel() : settings.getModel();
+
+        Model model = switch (provider.toLowerCase()) {
+            case "openai" -> {
+                var builder = OpenAIChatModel.builder()
+                        .apiKey(settings.getApiKey())
+                        .modelName(modelName);
+                if (settings.getBaseUrl() != null && !settings.getBaseUrl().isBlank()) {
+                    builder.baseUrl(settings.getBaseUrl());
+                }
+                yield builder.build();
+            }
+            case "anthropic" -> AnthropicChatModel.builder()
+                    .apiKey(settings.getApiKey())
+                    .modelName(modelName)
+                    .build();
+            default -> {
+                log.warn("Unknown provider '{}', falling back to anthropic", provider);
+                yield AnthropicChatModel.builder()
+                        .apiKey(settings.getApiKey())
+                        .modelName(modelName)
+                        .build();
+            }
+        };
 
         Toolkit toolkit = new Toolkit();
         toolkit.registerTool(new WebSearchTool());

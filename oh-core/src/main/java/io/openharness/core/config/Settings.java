@@ -9,7 +9,9 @@ import java.util.List;
 public class Settings {
 
     // ── Model ──
+    private String provider;
     private String model;
+    private String baseUrl;
     private int maxTurns;
 
     // ── Database ──
@@ -47,6 +49,7 @@ public class Settings {
     /** 硬编码默认值 */
     public static Settings defaults() {
         Settings s = new Settings();
+        s.provider = "anthropic";
         s.model = "claude-sonnet-4-6";
         s.maxTurns = 100;
         s.dbUrl = "jdbc:mysql://localhost:3306/oh";
@@ -71,7 +74,9 @@ public class Settings {
      * null 或空集合不覆盖，保持"上层覆盖下层"语义。
      */
     public void merge(Settings source) {
+        if (source.provider != null) this.provider = source.provider;
         if (source.model != null) this.model = source.model;
+        if (source.baseUrl != null) this.baseUrl = source.baseUrl;
         if (source.maxTurns != 0) this.maxTurns = source.maxTurns;
         if (source.dbUrl != null) this.dbUrl = source.dbUrl;
         if (source.dbUser != null) this.dbUser = source.dbUser;
@@ -93,8 +98,14 @@ public class Settings {
 
     // ── Getters / Setters ──
 
+    public String getProvider() { return provider; }
+    public void setProvider(String provider) { this.provider = provider; }
+
     public String getModel() { return model; }
     public void setModel(String model) { this.model = model; }
+
+    public String getBaseUrl() { return baseUrl; }
+    public void setBaseUrl(String baseUrl) { this.baseUrl = baseUrl; }
 
     public int getMaxTurns() { return maxTurns; }
     public void setMaxTurns(int maxTurns) { this.maxTurns = maxTurns; }
