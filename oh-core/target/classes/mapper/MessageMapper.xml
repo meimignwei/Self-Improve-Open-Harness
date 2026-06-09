@@ -14,7 +14,7 @@
         <result property="createdAt" column="created_at"/>
     </resultMap>
 
-    <select id="findBySessionId" resultMap="messageResult">
+    <select id="findBySessionId" resultType="io.openharness.core.persistence.model.Message">
         SELECT * FROM messages WHERE session_id = #{sessionId}
         ORDER BY turn_number, created_at
     </select>

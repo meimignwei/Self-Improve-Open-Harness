@@ -1,5 +1,8 @@
+io/openharness/unit/AgentAssemblerTest.class
 io/openharness/unit/ProfileManagerTest.class
+io/openharness/unit/SessionManagerTest.class
 io/openharness/unit/SystemPromptAssemblerTest.class
+io/openharness/unit/SessionContextTest.class
 io/openharness/unit/CostTrackingMiddlewareTest.class
 io/openharness/unit/WebFetchToolTest.class
 io/openharness/unit/ApiKeyResolverTest.class
