@@ -1,3 +1,4 @@
+io/openharness/core/events/ToolExecutedEvent.class
 io/openharness/core/persistence/mapper/ReplayMapper.class
 io/openharness/core/tools/WebFetchTool.class
 io/agentscope/core/tool/Toolkit.class
@@ -15,7 +16,9 @@ io/openharness/core/session/SessionContext.class
 io/openharness/core/middleware/CostTrackingMiddleware.class
 io/openharness/core/commands/OhCommand.class
 io/openharness/core/middleware/SystemPromptAssembler.class
+io/openharness/core/events/OhEvent.class
 io/openharness/core/commands/CommandRegistry.class
+io/openharness/core/events/EventBus.class
 io/openharness/core/observability/HealthChecker.class
 io/openharness/core/persistence/JsonTypeHandler.class
 io/openharness/core/persistence/mapper/InteractionMapper.class
@@ -28,11 +31,13 @@ io/openharness/core/persistence/model/Message.class
 io/openharness/core/observability/HealthChecker$Status.class
 io/agentscope/core/CompactionConfig$Builder.class
 io/openharness/core/persistence/model/ReplayEvent.class
+io/openharness/core/events/EventHandler.class
 io/openharness/core/persistence/mapper/SessionMapper.class
 io/agentscope/core/model/Model.class
 io/openharness/core/observability/HealthChecker$HealthReport.class
 io/openharness/core/tools/WebSearchTool.class
 io/openharness/core/observability/SessionRecorder.class
+io/openharness/core/events/TokenUsageEvent.class
 io/agentscope/core/middleware/MiddlewareContext.class
 io/openharness/core/config/ProfileManager.class
 io/openharness/core/persistence/model/Session.class
@@ -46,5 +51,6 @@ io/openharness/core/session/SessionContext$Builder.class
 io/agentscope/core/model/AnthropicChatModel$Builder.class
 io/agentscope/core/tool/ToolCallParam.class
 io/openharness/core/persistence/SentimentAnalyzer.class
+io/openharness/core/events/ReactorEventBus.class
 io/agentscope/core/tool/ToolBase.class
 io/openharness/core/config/Settings.class

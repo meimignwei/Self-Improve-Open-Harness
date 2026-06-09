@@ -2,6 +2,10 @@
 /Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-tests/src/test/java/io/openharness/unit/ApiKeyResolverTest.java
 /Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-tests/src/test/java/io/openharness/unit/AskUserQuestionToolTest.java
 /Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-tests/src/test/java/io/openharness/unit/CostTrackingMiddlewareTest.java
+/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-tests/src/test/java/io/openharness/unit/EventBusTest.java
+/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-tests/src/test/java/io/openharness/unit/HealthCheckerTest.java
+/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-tests/src/test/java/io/openharness/unit/HealthCommandTest.java
+/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-tests/src/test/java/io/openharness/unit/OhMainTest.java
 /Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-tests/src/test/java/io/openharness/unit/ProfileManagerTest.java
 /Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-tests/src/test/java/io/openharness/unit/SessionContextTest.java
 /Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-tests/src/test/java/io/openharness/unit/SessionManagerTest.java

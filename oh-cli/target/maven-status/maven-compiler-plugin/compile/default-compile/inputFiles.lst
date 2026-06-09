@@ -1,2 +1,9 @@
 /Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-cli/src/main/java/io/openharness/cli/OhMain.java
+/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-cli/src/main/java/io/openharness/cli/commands/ClearCommand.java
+/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-cli/src/main/java/io/openharness/cli/commands/ConfigCommand.java
+/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-cli/src/main/java/io/openharness/cli/commands/HealthCommand.java
+/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-cli/src/main/java/io/openharness/cli/commands/ModelCommand.java
 /Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-cli/src/main/java/io/openharness/cli/session/SessionManager.java
+/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-cli/src/main/java/io/openharness/cli/tui/AnsiRenderer.java
+/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-cli/src/main/java/io/openharness/cli/tui/OutputFormatter.java
+/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-cli/src/main/java/io/openharness/cli/tui/TerminalUI.java

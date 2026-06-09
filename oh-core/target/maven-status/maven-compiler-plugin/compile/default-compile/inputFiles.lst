@@ -18,6 +18,12 @@
 /Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/openharness/core/config/ProfileManager.java
 /Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/openharness/core/config/Settings.java
 /Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/openharness/core/config/SettingsLoader.java
+/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/openharness/core/events/EventBus.java
+/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/openharness/core/events/EventHandler.java
+/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/openharness/core/events/OhEvent.java
+/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/openharness/core/events/ReactorEventBus.java
+/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/openharness/core/events/TokenUsageEvent.java
+/Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/openharness/core/events/ToolExecutedEvent.java
 /Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/openharness/core/middleware/CostTrackingMiddleware.java
 /Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/openharness/core/middleware/SessionPersistenceMiddleware.java
 /Users/mmw/IdeaProjects/Self-Improve-Open-Harness/oh-core/src/main/java/io/openharness/core/middleware/SystemPromptAssembler.java
