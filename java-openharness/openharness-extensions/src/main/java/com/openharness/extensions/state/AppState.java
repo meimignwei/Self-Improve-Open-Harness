@@ -41,6 +41,12 @@ public record AppState(
                 effort, passes, mcpConnected, mcpFailed, bridgeSessions, outputStyle, keybindings);
     }
 
+    public AppState withVoiceEnabled(boolean v) {
+        return new AppState(model, permissionMode, theme, cwd, provider,
+                vimEnabled, v, voiceAvailable, voiceReason, fastMode,
+                effort, passes, mcpConnected, mcpFailed, bridgeSessions, outputStyle, keybindings);
+    }
+
     public AppState withPermissionMode(String newMode) {
         return new AppState(model, newMode, theme, cwd, provider,
                 vimEnabled, voiceEnabled, voiceAvailable, voiceReason, fastMode,

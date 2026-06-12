@@ -94,6 +94,22 @@ public final class Paths {
         return configDir().resolve("credentials.json");
     }
 
+    public static Path memoryDir() {
+        Path dir = dataDir().resolve("memory");
+        ensureDir(dir);
+        return dir;
+    }
+
+    public static Path projectMemoryDir(Path cwd) {
+        Path dir = projectConfigDir(cwd).resolve("memory");
+        ensureDir(dir);
+        return dir;
+    }
+
+    public static Path usageTrackerPath() {
+        return dataDir().resolve("memory_usage.json");
+    }
+
     public static Path projectConfigDir(Path cwd) {
         Path dir = cwd.toAbsolutePath().normalize().resolve(".openharness");
         ensureDir(dir);
