@@ -1,0 +1,8 @@
+com/openharness/common/RoleTest.class
+com/openharness/common/ApiStreamEventTest.class
+com/openharness/common/ContentBlockTest.class
+com/openharness/common/ConversationMessageTest.class
+com/openharness/common/ToolResultTest.class
+com/openharness/common/UsageSnapshotTest.class
+com/openharness/common/QueryOptionsTest.class
+com/openharness/common/StreamEventTest.class

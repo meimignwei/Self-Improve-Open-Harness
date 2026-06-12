@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 /**
  * Global Jackson ObjectMapper configured to match Python Pydantic v2 serialization behavior.
@@ -25,9 +26,13 @@ public final class OpenHarnessObjectMapper {
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
             // Sealed interface polymorphic serialization (Python Union type discrimination)
             .activateDefaultTyping(
-                    BasicPolymorphicTypeValidator.builder().build(),
+                    BasicPolymorphicTypeValidator.builder()
+                            .allowIfBaseType(Object.class)
+                            .build(),
                     ObjectMapper.DefaultTyping.NON_FINAL,
-                    JsonTypeInfo.As.PROPERTY);
+                    JsonTypeInfo.As.PROPERTY)
+            // Java 8 time support (Instant, Duration, etc.)
+            .registerModule(new JavaTimeModule());
 
     private OpenHarnessObjectMapper() {}
 

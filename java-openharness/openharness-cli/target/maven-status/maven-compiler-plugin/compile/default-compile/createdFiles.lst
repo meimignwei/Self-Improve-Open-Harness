@@ -1,1 +1,10 @@
-com/openharness/cli/OpenHarnessCLI.class
+META-INF/native-image/picocli-generated/resource-config.json
+com/openharness/cli/MainCommand$InitCmd.class
+com/openharness/cli/MainCommand.class
+com/openharness/cli/MainCommand$ConfigCmd.class
+com/openharness/cli/MainCommand$RunCmd.class
+com/openharness/cli/MainCommand$GatewayCmd.class
+META-INF/native-image/picocli-generated/reflect-config.json
+com/openharness/cli/MainCommand$DoctorCmd.class
+META-INF/native-image/picocli-generated/proxy-config.json
+com/openharness/cli/MainCommand$VersionProvider.class

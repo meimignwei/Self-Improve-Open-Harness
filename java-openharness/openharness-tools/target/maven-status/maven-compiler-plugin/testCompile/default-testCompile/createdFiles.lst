@@ -1,0 +1,4 @@
+com/openharness/tools/AskUserQuestionToolTest.class
+com/openharness/tools/CronToolsTest.class
+com/openharness/tools/TodoWriteToolTest.class
+com/openharness/tools/PlanModeToolsTest.class

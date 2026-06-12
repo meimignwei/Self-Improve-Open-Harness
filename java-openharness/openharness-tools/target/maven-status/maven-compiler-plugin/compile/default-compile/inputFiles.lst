@@ -1,11 +1,17 @@
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-tools/src/main/java/com/openharness/tools/AgentTool.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-tools/src/main/java/com/openharness/tools/AskUserQuestionTool.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-tools/src/main/java/com/openharness/tools/BashTool.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-tools/src/main/java/com/openharness/tools/CronTools.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-tools/src/main/java/com/openharness/tools/FileEditTool.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-tools/src/main/java/com/openharness/tools/FileReadTool.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-tools/src/main/java/com/openharness/tools/FileWriteTool.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-tools/src/main/java/com/openharness/tools/GlobTool.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-tools/src/main/java/com/openharness/tools/GrepTool.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-tools/src/main/java/com/openharness/tools/NotebookEditTool.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-tools/src/main/java/com/openharness/tools/PlanModeTools.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-tools/src/main/java/com/openharness/tools/SendMessageTool.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-tools/src/main/java/com/openharness/tools/SkillTool.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-tools/src/main/java/com/openharness/tools/TaskTools.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-tools/src/main/java/com/openharness/tools/TodoWriteTool.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-tools/src/main/java/com/openharness/tools/WebFetchTool.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-tools/src/main/java/com/openharness/tools/WebSearchTool.java

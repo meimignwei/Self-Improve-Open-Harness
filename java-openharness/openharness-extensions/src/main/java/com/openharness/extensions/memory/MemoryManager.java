@@ -73,7 +73,7 @@ public class MemoryManager {
         List<MemoryEntry> existing = store.findBySignature(signature);
         for (MemoryEntry e : existing) {
             if (!e.isExpired()) {
-                MemoryEntry updated = entry.withUpdatedBody(entry.body());
+                MemoryEntry updated = e.withUpdatedBody(entry.body());
                 store.save(updated);
                 return updated;
             }

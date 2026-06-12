@@ -1,0 +1,15 @@
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-ui/src/main/java/com/openharness/ui/BackendEvent.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-ui/src/main/java/com/openharness/ui/BackendOutput.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-ui/src/main/java/com/openharness/ui/EventLoop.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-ui/src/main/java/com/openharness/ui/FrontendRequest.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-ui/src/main/java/com/openharness/ui/InputHandler.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-ui/src/main/java/com/openharness/ui/JsonLinesProtocol.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-ui/src/main/java/com/openharness/ui/OpenHarnessApp.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-ui/src/main/java/com/openharness/ui/OutputRenderer.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-ui/src/main/java/com/openharness/ui/PermissionDialog.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-ui/src/main/java/com/openharness/ui/PrintOutput.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-ui/src/main/java/com/openharness/ui/ReactLauncher.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-ui/src/main/java/com/openharness/ui/RuntimeFactory.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-ui/src/main/java/com/openharness/ui/RuntimeOutput.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-ui/src/main/java/com/openharness/ui/SlashCommandCompleter.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-ui/src/main/java/com/openharness/ui/TerminalUI.java

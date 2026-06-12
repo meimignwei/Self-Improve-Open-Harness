@@ -32,8 +32,7 @@ public record MemoryEntry(
         public MemoryHeader {
             if (schemaVersion == 0) schemaVersion = 2;
             if (id == null) id = UUID.randomUUID().toString();
-            if (importance < 1) importance = 5;
-            if (importance > 10) importance = 10;
+            importance = Math.clamp(importance, 1, 10);
             supersedes = supersedes != null ? List.copyOf(supersedes) : List.of();
         }
 
