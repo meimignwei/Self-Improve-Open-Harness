@@ -34,4 +34,9 @@ public record QueryOptions(
         return new QueryOptions(model, systemPrompt, Optional.of(maxTurns),
                 streamEnabled, toolsEnabled, autoCompact, workingDirectory, sessionId);
     }
+
+    public QueryOptions withSystemPrompt(String systemPrompt) {
+        return new QueryOptions(model, Optional.ofNullable(systemPrompt), maxTurns,
+                streamEnabled, toolsEnabled, autoCompact, workingDirectory, sessionId);
+    }
 }

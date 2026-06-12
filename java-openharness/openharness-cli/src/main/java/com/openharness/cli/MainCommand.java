@@ -1,9 +1,29 @@
 package com.openharness.cli;
 
+import com.openharness.api.AnthropicMessagesClient;
+import com.openharness.api.OpenAICompatibleClient;
+import com.openharness.api.StreamingApiClient;
+import com.openharness.config.ProviderProfile;
+import com.openharness.config.Settings;
+import com.openharness.engine.QueryEngine;
+import com.openharness.engine.tool.ToolRegistry;
+import com.openharness.extensions.mcp.McpClientManager;
+import com.openharness.extensions.mcp.McpServerConfig;
+import com.openharness.extensions.memory.MemoryTools;
+import com.openharness.permissions.PermissionChecker;
+import com.openharness.tools.McpTool;
+import com.openharness.tools.McpToolAdapter;
+import com.openharness.tools.ToolBootstrap;
+import com.openharness.tools.ToolSearchTool;
+import com.openharness.ui.OpenHarnessApp;
+import com.openharness.ui.RuntimeFactory;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 
 /**
@@ -50,16 +70,157 @@ public class MainCommand implements Callable<Integer> {
 
         @Override
         public Integer call() {
-            var settings = com.openharness.config.Settings.load();
+            var settings = Settings.load();
             if (model != null) settings.setModel(model);
             if (outputStyle != null) settings.setOutputStyle(outputStyle);
 
-            var mode = com.openharness.ui.RuntimeFactory.resolveMode(
-                    outputStyle != null ? outputStyle : settings.outputStyle());
+            var mode = RuntimeFactory.resolveMode(settings.outputStyle());
 
-            var app = new com.openharness.ui.OpenHarnessApp(settings, mode);
+            // 1. Create API client
+            StreamingApiClient apiClient = createApiClient(settings);
+
+            // 2. Create tool registry with basic tools
+            ToolRegistry registry = ToolBootstrap.createBasicRegistry();
+
+            // 3. Register MemoryTools
+            registry.register(new MemoryTools.MemoryCreateTool());
+            registry.register(new MemoryTools.MemoryReadTool());
+            registry.register(new MemoryTools.MemorySearchTool());
+            registry.register(new MemoryTools.MemoryDeleteTool());
+
+            // 4. Register MCP tools
+            McpClientManager mcpManager = new McpClientManager();
+            List<McpServerConfig> mcpConfigs = loadMcpConfigs(settings);
+            if (!mcpConfigs.isEmpty()) {
+                mcpManager.connectAll(mcpConfigs);
+            }
+            registry.register(new McpTool(mcpManager));
+            registry.register(new com.openharness.tools.McpTools.ListMcpResourcesTool(mcpManager));
+            registry.register(new com.openharness.tools.McpTools.ReadMcpResourceTool(mcpManager));
+            for (var mcpToolInfo : mcpManager.listTools()) {
+                registry.register(new McpToolAdapter(mcpManager, mcpToolInfo));
+            }
+
+            // 5. Register tool search (needs registry itself)
+            registry.register(new ToolSearchTool(registry));
+
+            // 6. Create permission checker and query engine with confirmation callback
+            var permissionChecker = new PermissionChecker(settings.permission());
+            var confirmCallback = createConfirmCallback(mode);
+            var queryEngine = new QueryEngine(apiClient, registry, permissionChecker,
+                    new com.openharness.engine.CostTracker(), null, null, confirmCallback);
+
+            // 7. Run app
+            var app = new OpenHarnessApp(settings, mode, queryEngine);
             app.run(prompt);
             return 0;
+        }
+
+        private java.util.function.BiFunction<String, String, Boolean> createConfirmCallback(
+                com.openharness.ui.RuntimeOutput.Mode mode) {
+            return switch (mode) {
+                case TUI -> {
+                    var dialog = new com.openharness.ui.PermissionDialog();
+                    yield (toolName, reason) -> {
+                        var resp = dialog.ask(toolName, reason);
+                        return resp == com.openharness.ui.PermissionDialog.Response.ALLOW
+                                || resp == com.openharness.ui.PermissionDialog.Response.ALLOW_ALL;
+                    };
+                }
+                case PRINT, BACKEND -> {
+                    var scanner = new java.util.Scanner(System.in);
+                    yield (toolName, reason) -> {
+                        System.out.println();
+                        System.out.println("┌─ Permission Check ─────────────────────");
+                        System.out.println("│ Tool: " + toolName);
+                        System.out.println("│ " + reason);
+                        System.out.println("│ [y] Allow once  [n] Deny");
+                        System.out.print("└─> ");
+                        System.out.flush();
+                        try {
+                            String line = scanner.nextLine().trim().toLowerCase();
+                            return line.equals("y") || line.equals("yes");
+                        } catch (Exception e) {
+                            return false;
+                        }
+                    };
+                }
+            };
+        }
+
+        private StreamingApiClient createApiClient(Settings settings) {
+            String apiKey = resolveApiKey(settings);
+            String provider = settings.provider();
+            if (provider == null || provider.isBlank()) {
+                provider = settings.activeProfile();
+            }
+
+            ProviderProfile profile = settings.mergedProfiles().get(provider);
+            String apiFormat = profile != null ? profile.apiFormat() : settings.apiFormat();
+            String baseUrl = profile != null && profile.baseUrl() != null
+                    ? profile.baseUrl()
+                    : settings.baseUrl();
+
+            if ("anthropic".equals(apiFormat)) {
+                return new AnthropicMessagesClient(apiKey, baseUrl, null);
+            }
+            return new OpenAICompatibleClient(apiKey, baseUrl);
+        }
+
+        private String resolveApiKey(Settings settings) {
+            String key = settings.apiKey();
+            if (key != null && !key.isBlank()) {
+                return key;
+            }
+            String env = System.getenv("ANTHROPIC_API_KEY");
+            if (env != null && !env.isBlank()) {
+                return env;
+            }
+            env = System.getenv("OPENAI_API_KEY");
+            if (env != null && !env.isBlank()) {
+                return env;
+            }
+            return "";
+        }
+
+        @SuppressWarnings("unchecked")
+        private List<McpServerConfig> loadMcpConfigs(Settings settings) {
+            // Load from ~/.openharness/mcp_servers.json if present
+            java.nio.file.Path configDir = com.openharness.config.Paths.configDir();
+            java.nio.file.Path mcpFile = configDir.resolve("mcp_servers.json");
+            if (!java.nio.file.Files.exists(mcpFile)) {
+                return List.of();
+            }
+            try {
+                var mapper = com.openharness.common.OpenHarnessObjectMapper.get();
+                Map<String, Object> root = mapper.readValue(mcpFile.toFile(), Map.class);
+                List<McpServerConfig> configs = new ArrayList<>();
+                Map<String, Object> servers = (Map<String, Object>) root.getOrDefault("mcp_servers", Map.of());
+                for (Map.Entry<String, Object> entry : servers.entrySet()) {
+                    Map<String, Object> server = (Map<String, Object>) entry.getValue();
+                    String transport = (String) server.getOrDefault("transport", "stdio");
+                    String name = entry.getKey();
+                    if ("stdio".equals(transport)) {
+                        String command = (String) server.get("command");
+                        List<String> args = (List<String>) server.getOrDefault("args", List.of());
+                        Map<String, String> env = (Map<String, String>) server.getOrDefault("env", Map.of());
+                        String cwd = (String) server.get("cwd");
+                        if (command != null && !command.isBlank()) {
+                            configs.add(new McpServerConfig.StdioConfig(name, command, args, env, cwd));
+                        }
+                    } else if ("http".equals(transport) || "sse".equals(transport)) {
+                        String url = (String) server.get("url");
+                        Map<String, String> headers = (Map<String, String>) server.getOrDefault("headers", Map.of());
+                        if (url != null && !url.isBlank()) {
+                            configs.add(new McpServerConfig.HttpConfig(name, url, headers));
+                        }
+                    }
+                }
+                return configs;
+            } catch (Exception e) {
+                System.err.println("Warning: failed to load MCP configs: " + e.getMessage());
+                return List.of();
+            }
         }
     }
 
@@ -74,7 +235,7 @@ public class MainCommand implements Callable<Integer> {
 
         @Override
         public Integer call() {
-            var settings = com.openharness.config.Settings.load();
+            var settings = Settings.load();
 
             if (set != null) {
                 String[] parts = set.split("=", 2);
@@ -100,7 +261,7 @@ public class MainCommand implements Callable<Integer> {
             return 0;
         }
 
-        private void applySetting(com.openharness.config.Settings s, String key, String value) {
+        private void applySetting(Settings s, String key, String value) {
             switch (key) {
                 case "model" -> s.setModel(value);
                 case "provider" -> s.setProvider(value);
@@ -135,7 +296,7 @@ public class MainCommand implements Callable<Integer> {
             System.out.println();
 
             System.out.println("--- OpenHarness ---");
-            var settings = com.openharness.config.Settings.load();
+            var settings = Settings.load();
             System.out.println("  config dir: " + com.openharness.config.Paths.configDir());
             System.out.println("  config file: " + com.openharness.config.Paths.configFilePath());
             System.out.println("  config exists: " + java.nio.file.Files.exists(com.openharness.config.Paths.configFilePath()));

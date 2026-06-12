@@ -55,7 +55,10 @@ public class SystemPromptBuilder {
             sb.append("\n**Fast mode is enabled.**\n");
         }
 
-        // 5. Auto mode
+        // 5. Skills section
+        sb.append(buildSkillsSection(ctx.skillRegistry()));
+
+        // 6. Auto mode
         sb.append(buildAutoSection(settings));
 
         return sb.toString();
@@ -89,6 +92,22 @@ public class SystemPromptBuilder {
                     """;
             default -> "";
         };
+    }
+
+    private String buildSkillsSection(SkillRegistry skillRegistry) {
+        if (skillRegistry == null || skillRegistry.listSkills().isEmpty()) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder("\n## Available Skills\n\n");
+        for (var skill : skillRegistry.listSkills()) {
+            if (skill.disableModelInvocation()) continue;
+            sb.append("- ").append(skill.name());
+            if (!skill.description().isBlank()) {
+                sb.append(": ").append(skill.description().strip().replaceAll("\s+", " "));
+            }
+            sb.append("\n");
+        }
+        return sb.toString();
     }
 
     private String buildAutoSection(Settings settings) {

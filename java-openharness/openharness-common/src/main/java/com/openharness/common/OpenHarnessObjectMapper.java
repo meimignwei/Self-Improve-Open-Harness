@@ -1,7 +1,9 @@
 package com.openharness.common;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -24,6 +26,8 @@ public final class OpenHarnessObjectMapper {
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
             // Allow unknown fields for frontend protocol evolution
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+            // Support field-based serialization for models without standard getters (e.g. model() vs getModel())
+            .setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY)
             // Sealed interface polymorphic serialization (Python Union type discrimination)
             .activateDefaultTyping(
                     BasicPolymorphicTypeValidator.builder()

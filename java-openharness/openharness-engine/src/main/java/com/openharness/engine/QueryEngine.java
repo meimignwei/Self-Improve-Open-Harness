@@ -27,12 +27,33 @@ public class QueryEngine implements AgentRuntime {
     private final StreamingApiClient apiClient;
     private final ToolRegistry toolRegistry;
     private final PermissionChecker permissionChecker;
+    private final CostTracker costTracker;
+    private final AutoCompactState autoCompactState;
+    private final ToolCarryover toolCarryover;
+    private final java.util.function.BiFunction<String, String, Boolean> confirmCallback;
 
     public QueryEngine(StreamingApiClient apiClient, ToolRegistry toolRegistry,
                        PermissionChecker permissionChecker) {
+        this(apiClient, toolRegistry, permissionChecker, new CostTracker(), null, null, null);
+    }
+
+    public QueryEngine(StreamingApiClient apiClient, ToolRegistry toolRegistry,
+                       PermissionChecker permissionChecker, CostTracker costTracker,
+                       AutoCompactState autoCompactState, ToolCarryover toolCarryover) {
+        this(apiClient, toolRegistry, permissionChecker, costTracker, autoCompactState, toolCarryover, null);
+    }
+
+    public QueryEngine(StreamingApiClient apiClient, ToolRegistry toolRegistry,
+                       PermissionChecker permissionChecker, CostTracker costTracker,
+                       AutoCompactState autoCompactState, ToolCarryover toolCarryover,
+                       java.util.function.BiFunction<String, String, Boolean> confirmCallback) {
         this.apiClient = apiClient;
         this.toolRegistry = toolRegistry;
         this.permissionChecker = permissionChecker;
+        this.costTracker = costTracker;
+        this.autoCompactState = autoCompactState;
+        this.toolCarryover = toolCarryover;
+        this.confirmCallback = confirmCallback;
     }
 
     @Override
@@ -56,10 +77,16 @@ public class QueryEngine implements AgentRuntime {
                               SubmissionPublisher<StreamEvent> publisher) {
         int maxTurns = options.maxTurns().orElse(10);
         String model = options.model().orElse("claude-sonnet-4-6");
-        String systemPrompt = options.systemPrompt().orElse(null);
+        String baseSystemPrompt = options.systemPrompt().orElse(null);
         Path cwd = options.workingDirectory()
                 .map(Path::of)
                 .orElse(Path.of("").toAbsolutePath());
+
+        // Inject carryover context into system prompt
+        String carryoverSnippet = toolCarryover != null ? toolCarryover.buildPromptSnippet() : "";
+        String systemPrompt = (baseSystemPrompt != null ? baseSystemPrompt : "")
+                + carryoverSnippet;
+        if (systemPrompt.isBlank()) systemPrompt = null;
 
         List<ConversationMessage> conversation = new ArrayList<>(messages);
         List<ToolDefinition> toolDefs = buildToolDefinitions();
@@ -76,6 +103,17 @@ public class QueryEngine implements AgentRuntime {
             if (result.error() != null) {
                 publisher.submit(new StreamEvent.ErrorStreamEvent(result.error()));
                 return;
+            }
+
+            if (result.usage() != null) {
+                costTracker.add(result.usage(), model);
+            }
+
+            // Auto-compaction check
+            if (autoCompactState != null && autoCompactState.shouldCompact(result.usage())) {
+                conversation = autoCompactState.compact(conversation);
+                publisher.submit(new StreamEvent.StatusEvent(
+                        "Auto-compaction triggered", StreamEvent.StatusLevel.INFO));
             }
 
             List<ContentBlock> responseBlocks = result.blocks();
@@ -177,19 +215,22 @@ public class QueryEngine implements AgentRuntime {
                 PermissionDecision decision = permissionChecker.evaluate(
                         name, isReadOnly, filePath, command);
 
-                if (!decision.allowed()) {
-                    if (decision.requiresConfirmation()) {
-                        // In DEFAULT mode, confirm is treated as deny for now
-                        results.add(new ContentBlock.ToolResultBlock(id,
-                                decision.reason(), true));
+                if (decision.requiresConfirmation()) {
+                    boolean approved = confirmCallback != null && confirmCallback.apply(name, decision.reason());
+                    if (!approved) {
+                        String msg = confirmCallback == null
+                                ? decision.reason() + " (confirmation not configured)"
+                                : "User denied: " + decision.reason();
+                        results.add(new ContentBlock.ToolResultBlock(id, msg, true));
                         publisher.submit(new StreamEvent.ToolCompleted(name, id,
-                                ToolResult.error(decision.reason())));
-                    } else {
-                        results.add(new ContentBlock.ToolResultBlock(id,
-                                decision.reason(), true));
-                        publisher.submit(new StreamEvent.ToolCompleted(name, id,
-                                ToolResult.error(decision.reason())));
+                                ToolResult.error(msg)));
+                        continue;
                     }
+                    // approved - fall through to execution
+                } else if (!decision.allowed()) {
+                    results.add(new ContentBlock.ToolResultBlock(id, decision.reason(), true));
+                    publisher.submit(new StreamEvent.ToolCompleted(name, id,
+                            ToolResult.error(decision.reason())));
                     continue;
                 }
 
@@ -199,6 +240,9 @@ public class QueryEngine implements AgentRuntime {
                     results.add(new ContentBlock.ToolResultBlock(id,
                             result.isError() ? result.content() : result.content(), result.isError()));
                     publisher.submit(new StreamEvent.ToolCompleted(name, id, result));
+                    if (toolCarryover != null && !result.isError()) {
+                        toolCarryover.evaluate(name, result);
+                    }
                 } catch (Exception e) {
                     String errorMsg = "Tool " + name + " failed: " + e.getMessage();
                     results.add(new ContentBlock.ToolResultBlock(id, errorMsg, true));
@@ -214,19 +258,31 @@ public class QueryEngine implements AgentRuntime {
     private ToolResult executeSingleTool(BaseTool<?> tool, JsonNode input,
                                           Path cwd) {
         ToolExecutionContext ctx = new ToolExecutionContext(cwd);
-        // Use the tool's input type — since we don't have deserialization yet,
-        // pass null for the typed input and let tools handle it
-        return ((BaseTool<Object>) tool).execute(null, ctx);
+        try {
+            Object parsedInput;
+            if (tool.inputType() == Void.class) {
+                parsedInput = null;
+            } else if (input != null) {
+                parsedInput = OpenHarnessObjectMapper.get().treeToValue(input, tool.inputType());
+            } else {
+                parsedInput = null;
+            }
+            return ((BaseTool<Object>) tool).execute(parsedInput, ctx);
+        } catch (Exception e) {
+            return ToolResult.error("Failed to parse tool input for '" + tool.name()
+                    + "': " + e.getMessage());
+        }
     }
 
     private List<ToolDefinition> buildToolDefinitions() {
-        var mapper = OpenHarnessObjectMapper.get();
         return toolRegistry.listTools().stream()
                 .map(tool -> {
-                    Map<String, JsonNode> schema = Map.of(
-                            "type", mapper.getNodeFactory().textNode("object")
-                    );
-                    return new ToolDefinition(tool.name(), tool.description(), schema);
+                    JsonNode schema = tool.inputSchema();
+                    Map<String, JsonNode> schemaMap = new HashMap<>();
+                    if (schema instanceof com.fasterxml.jackson.databind.node.ObjectNode obj) {
+                        obj.fields().forEachRemaining(e -> schemaMap.put(e.getKey(), e.getValue()));
+                    }
+                    return new ToolDefinition(tool.name(), tool.description(), schemaMap);
                 })
                 .toList();
     }

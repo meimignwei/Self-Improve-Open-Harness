@@ -2,6 +2,8 @@ package com.openharness.extensions.mcp;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.openharness.common.McpClient;
+import com.openharness.common.McpToolInfo;
 import com.openharness.common.OpenHarnessObjectMapper;
 
 import java.io.*;
@@ -19,11 +21,12 @@ import java.util.logging.Logger;
  * Manages MCP server connections, tool dispatch, and resource access.
  * Java equivalent of Python's McpClientManager.
  */
-public class McpClientManager {
+public class McpClientManager implements com.openharness.common.McpClient {
 
     private static final Logger LOG = Logger.getLogger(McpClientManager.class.getName());
 
     private final Map<String, McpConnectionState> connections = new ConcurrentHashMap<>();
+    private final Map<String, McpTransport> transports = new ConcurrentHashMap<>();
     private final ObjectMapper mapper;
     private final HttpClient httpClient;
 
@@ -64,20 +67,28 @@ public class McpClientManager {
         if (config.env() != null) pb.environment().putAll(config.env());
 
         Process process = pb.start();
+        StdioTransport transport = new StdioTransport(process, mapper);
 
         // Send initialize request and read response
-        JsonNode initResult = sendJsonRpc(process,
+        JsonNode initResult = transport.sendRequest(
                 buildRequest("initialize", Map.of(
                         "protocolVersion", "2024-11-05",
                         "capabilities", Map.of())));
 
         // List tools
-        JsonNode toolsResult = sendJsonRpc(process,
+        JsonNode toolsResult = transport.sendRequest(
                 buildRequest("tools/list", Map.of()));
-
         List<McpToolInfo> tools = parseToolList(toolsResult, config.name());
+
+        // List resources
+        JsonNode resourcesResult = transport.sendRequest(
+                buildRequest("resources/list", Map.of()));
+        List<McpClient.McpResourceInfo> resources = parseResourceList(resourcesResult, config.name());
+
+        transports.put(config.name(), transport);
+
         return new McpConnectionState(config.name(), ConnectionState.CONNECTED,
-                "Connected via stdio", "stdio", false, tools, List.of());
+                "Connected via stdio", "stdio", false, tools, resources);
     }
 
     private McpConnectionState connectHttp(McpServerConfig.HttpConfig config) {
@@ -98,7 +109,21 @@ public class McpClientManager {
         if (conn == null || conn.state() != ConnectionState.CONNECTED) {
             return "Error: MCP server '" + serverName + "' is not connected";
         }
-        return "MCP tool call: " + serverName + "/" + toolName;
+
+        McpTransport transport = transports.get(serverName);
+        if (transport == null) {
+            return "Error: MCP transport not available for '" + serverName + "'";
+        }
+
+        try {
+            JsonNode result = transport.sendRequest(buildRequest("tools/call", Map.of(
+                    "name", toolName,
+                    "arguments", args != null ? args : mapper.createObjectNode())));
+            return formatToolResult(result);
+        } catch (Exception e) {
+            LOG.warning("MCP tool call failed: " + e.getMessage());
+            return "Error: MCP tool call failed: " + e.getMessage();
+        }
     }
 
     public List<McpToolInfo> listTools() {
@@ -108,30 +133,46 @@ public class McpClientManager {
                 .toList();
     }
 
+    @Override
+    public List<com.openharness.common.McpClient.McpResourceInfo> listResources(String serverName) {
+        McpConnectionState conn = connections.get(serverName);
+        if (conn == null || conn.state() != ConnectionState.CONNECTED) {
+            return List.of();
+        }
+        return conn.resources();
+    }
+
+    public String readResource(String serverName, String uri) {
+        McpConnectionState conn = connections.get(serverName);
+        if (conn == null || conn.state() != ConnectionState.CONNECTED) {
+            return "Error: MCP server '" + serverName + "' is not connected";
+        }
+
+        McpTransport transport = transports.get(serverName);
+        if (transport == null) {
+            return "Error: MCP transport not available for '" + serverName + "'";
+        }
+
+        try {
+            JsonNode result = transport.sendRequest(buildRequest("resources/read", Map.of(
+                    "uri", uri)));
+            return formatResourceResult(result);
+        } catch (Exception e) {
+            LOG.warning("MCP resource read failed: " + e.getMessage());
+            return "Error: MCP resource read failed: " + e.getMessage();
+        }
+    }
+
     public List<McpConnectionState> listStatuses() {
         return List.copyOf(connections.values());
     }
 
     public void disconnect(String serverName) {
-        connections.remove(serverName);
-    }
-
-    private JsonNode sendJsonRpc(Process process, JsonNode request) throws IOException {
-        String json = mapper.writeValueAsString(request) + "\n";
-        process.getOutputStream().write(json.getBytes());
-        process.getOutputStream().flush();
-
-        try {
-            BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(process.getInputStream()));
-            String line = reader.readLine();
-            if (line != null) {
-                return mapper.readTree(line);
-            }
-        } catch (Exception e) {
-            LOG.warning("Failed to read MCP response: " + e.getMessage());
+        McpTransport transport = transports.remove(serverName);
+        if (transport != null) {
+            transport.close();
         }
-        return mapper.createObjectNode();
+        connections.remove(serverName);
     }
 
     private JsonNode buildRequest(String method, Map<String, Object> params) {
@@ -156,5 +197,118 @@ public class McpClientManager {
             }
         }
         return tools;
+    }
+
+    private List<McpClient.McpResourceInfo> parseResourceList(JsonNode result, String serverName) {
+        List<McpClient.McpResourceInfo> resources = new ArrayList<>();
+        JsonNode resourceList = result.get("result");
+        if (resourceList != null && resourceList.has("resources")) {
+            for (JsonNode r : resourceList.get("resources")) {
+                resources.add(new McpClient.McpResourceInfo(
+                        serverName,
+                        r.has("name") ? r.get("name").asText() : "",
+                        r.has("uri") ? r.get("uri").asText() : "",
+                        r.has("description") ? r.get("description").asText() : ""));
+            }
+        }
+        return resources;
+    }
+
+    private String formatToolResult(JsonNode result) {
+        if (result == null) {
+            return "Error: Empty response from MCP server";
+        }
+        if (result.has("error")) {
+            return "MCP Error: " + result.get("error");
+        }
+        JsonNode content = result.get("result");
+        if (content == null) {
+            return result.toString();
+        }
+        // MCP tools/call result has content array
+        if (content.has("content") && content.get("content").isArray()) {
+            StringBuilder sb = new StringBuilder();
+            for (JsonNode item : content.get("content")) {
+                if (item.has("text")) {
+                    sb.append(item.get("text").asText());
+                } else {
+                    sb.append(item.toString());
+                }
+            }
+            return sb.toString();
+        }
+        return content.toString();
+    }
+
+    private String formatResourceResult(JsonNode result) {
+        if (result == null) {
+            return "Error: Empty response from MCP server";
+        }
+        if (result.has("error")) {
+            return "MCP Error: " + result.get("error");
+        }
+        JsonNode content = result.get("result");
+        if (content == null) {
+            return result.toString();
+        }
+        // resources/read returns contents array with text/blob
+        if (content.has("contents") && content.get("contents").isArray()) {
+            StringBuilder sb = new StringBuilder();
+            for (JsonNode item : content.get("contents")) {
+                if (item.has("text")) {
+                    sb.append(item.get("text").asText());
+                } else {
+                    sb.append(item.toString());
+                }
+            }
+            return sb.toString();
+        }
+        return content.toString();
+    }
+
+    /**
+     * Internal transport abstraction for MCP communication.
+     */
+    private interface McpTransport {
+        JsonNode sendRequest(JsonNode request) throws IOException;
+        void close();
+    }
+
+    /**
+     * Stdio-based JSON-RPC transport with persistent reader.
+     */
+    private static class StdioTransport implements McpTransport {
+        private final Process process;
+        private final BufferedReader reader;
+        private final ObjectMapper mapper;
+
+        StdioTransport(Process process, ObjectMapper mapper) {
+            this.process = process;
+            this.reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            this.mapper = mapper;
+        }
+
+        @Override
+        public synchronized JsonNode sendRequest(JsonNode request) throws IOException {
+            String json = mapper.writeValueAsString(request) + "\n";
+            process.getOutputStream().write(json.getBytes());
+            process.getOutputStream().flush();
+
+            String line = reader.readLine();
+            if (line != null) {
+                return mapper.readTree(line);
+            }
+            return mapper.createObjectNode();
+        }
+
+        @Override
+        public void close() {
+            process.destroy();
+            try {
+                reader.close();
+            } catch (IOException e) {
+                // ignore
+            }
+        }
     }
 }

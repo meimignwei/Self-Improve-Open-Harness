@@ -1,8 +1,10 @@
 package com.openharness.ui;
 
+import com.openharness.common.*;
 import com.openharness.config.Settings;
 
-import java.util.Scanner;
+import java.util.List;
+import java.util.concurrent.Flow;
 
 /**
  * Main event loop: reads user input, dispatches to engine, renders output.
@@ -12,23 +14,21 @@ public class EventLoop {
 
     private final RuntimeOutput output;
     private final Settings settings;
-    private final Scanner scanner;
+    private final AgentRuntime agentRuntime;
 
-    public EventLoop(RuntimeOutput output, Settings settings) {
+    public EventLoop(RuntimeOutput output, Settings settings, AgentRuntime agentRuntime) {
         this.output = output;
         this.settings = settings;
-        this.scanner = new Scanner(System.in);
+        this.agentRuntime = agentRuntime;
     }
 
     public void run() {
         output.emitStatus("OpenHarness v0.1.0 ready. Model: " + settings.model());
 
         while (true) {
-            System.out.print("> ");
-            System.out.flush();
-
-            if (!scanner.hasNextLine()) break;
-            String line = scanner.nextLine().trim();
+            String line = output.readInput();
+            if (line == null) break;
+            line = line.trim();
 
             if (line.isEmpty()) continue;
             if (line.equalsIgnoreCase("/exit") || line.equalsIgnoreCase("/quit")) {
@@ -41,12 +41,67 @@ public class EventLoop {
                 continue;
             }
 
-            // Process user input through the engine
-            output.emitAssistantDelta(line);
-            output.emitStatus("Processing: " + truncate(line, 60));
+            executeQuery(line);
         }
 
         output.emitShutdown();
+    }
+
+    private void executeQuery(String userInput) {
+        List<ConversationMessage> messages = List.of(
+                new ConversationMessage(Role.USER, List.of(new ContentBlock.TextBlock(userInput)))
+        );
+
+        QueryOptions options = QueryOptions.defaults()
+                .withModel(settings.model())
+                .withMaxTurns(settings.maxTurns())
+                .withSystemPrompt(settings.systemPrompt());
+
+        var publisher = agentRuntime.runQuery(messages, options);
+        var latch = new java.util.concurrent.CountDownLatch(1);
+
+        publisher.subscribe(new Flow.Subscriber<>() {
+            private Flow.Subscription subscription;
+
+            @Override
+            public void onSubscribe(Flow.Subscription subscription) {
+                this.subscription = subscription;
+                subscription.request(Long.MAX_VALUE);
+            }
+
+            @Override
+            public void onNext(StreamEvent event) {
+                switch (event) {
+                    case StreamEvent.AssistantTextDelta(var text) -> output.emitAssistantDelta(text);
+                    case StreamEvent.ToolStarted(var name, var id) -> output.emitToolStarted(name, null);
+                    case StreamEvent.ToolCompleted(var name, var id, var result) ->
+                            output.emitToolCompleted(name, result);
+                    case StreamEvent.StatusEvent(var msg, var level) -> output.emitStatus(msg);
+                    case StreamEvent.ErrorStreamEvent(var msg) -> output.emitError(msg);
+                    case StreamEvent.AssistantTurnComplete(var usage) -> { /* turn boundary */ }
+                    case StreamEvent.CompactProgressEvent(var removed, var remaining) ->
+                            output.emitStatus("Compacted " + removed + " messages");
+                }
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+                output.emitError("Stream error: " + throwable.getMessage());
+                latch.countDown();
+            }
+
+            @Override
+            public void onComplete() {
+                output.emitAssistantDelta("\n");
+                latch.countDown();
+            }
+        });
+
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     private void handleSlashCommand(String input) {
@@ -67,9 +122,5 @@ public class EventLoop {
             case "/clear" -> System.out.print("\033[H\033[2J");
             default -> output.emitStatus("Unknown command: " + cmd);
         }
-    }
-
-    private static String truncate(String s, int maxLen) {
-        return s.length() <= maxLen ? s : s.substring(0, maxLen) + "...";
     }
 }

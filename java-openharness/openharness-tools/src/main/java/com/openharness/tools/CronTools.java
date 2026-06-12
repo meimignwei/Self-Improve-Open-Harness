@@ -94,6 +94,39 @@ public final class CronTools {
         @Override public boolean isReadOnly(Void args) { return true; }
     }
 
+    public static class CronToggleTool extends BaseTool<CronToggleTool.Input> {
+        public CronToggleTool() {
+            super("cron_toggle", "Enable or disable a scheduled cron job by ID.", Input.class);
+        }
+
+        @Override
+        public ToolResult execute(Input args, ToolExecutionContext ctx) {
+            Path registryPath = ctx.cwd().resolve(".openharness").resolve("cron_jobs.json");
+            List<CronJob> jobs = load(registryPath);
+            boolean found = false;
+            List<CronJob> updated = new ArrayList<>();
+            for (CronJob j : jobs) {
+                if (j.id().equals(args.jobId())) {
+                    found = true;
+                    updated.add(new CronJob(j.id(), j.cron(), j.prompt(), args.enabled(),
+                            j.timezone(), j.description(), j.recurring(), j.durable(), j.createdAt()));
+                } else {
+                    updated.add(j);
+                }
+            }
+            if (!found) return ToolResult.error("Job not found: " + args.jobId());
+            save(registryPath, updated);
+            String state = args.enabled() ? "enabled" : "disabled";
+            return ToolResult.success("Cron job " + args.jobId() + " is now " + state + ".");
+        }
+
+        public record Input(String jobId, boolean enabled) {
+            public Input {
+                if (jobId == null) throw new IllegalArgumentException("jobId is required");
+            }
+        }
+    }
+
     @SuppressWarnings("unchecked")
     private static List<CronJob> load(Path path) {
         if (!Files.exists(path)) return new ArrayList<>();

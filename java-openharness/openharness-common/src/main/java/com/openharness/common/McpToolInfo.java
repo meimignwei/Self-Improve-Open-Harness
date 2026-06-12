@@ -1,4 +1,4 @@
-package com.openharness.extensions.mcp;
+package com.openharness.common;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
