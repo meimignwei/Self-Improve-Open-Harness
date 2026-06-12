@@ -7,10 +7,33 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
       </profile>
+      <profile name="Annotation profile for OpenHarness Java" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="false">
+          <entry name="$MAVEN_REPOSITORY$/info/picocli/picocli-codegen/4.7.6/picocli-codegen-4.7.6.jar" />
+          <entry name="$MAVEN_REPOSITORY$/info/picocli/picocli/4.7.6/picocli-4.7.6.jar" />
+          <entry name="$MAVEN_REPOSITORY$/info/picocli/picocli-codegen/4.7.6/picocli-codegen-4.7.6.jar" />
+          <entry name="$MAVEN_REPOSITORY$/info/picocli/picocli/4.7.6/picocli-4.7.6.jar" />
+        </processorPath>
+        <module name="openharness-api" />
+        <module name="openharness-config" />
+        <module name="openharness-ui" />
+        <module name="openharness-ohmo" />
+        <module name="openharness-observability" />
+        <module name="openharness-app" />
+        <module name="openharness-engine" />
+        <module name="openharness-extensions" />
+        <module name="openharness-common" />
+        <module name="openharness-tools" />
+        <module name="openharness-cli" />
+      </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
       <module name="oh-cli" target="17" />
       <module name="oh-core" target="17" />
+      <module name="oh-parent" target="1.8" />
       <module name="oh-tests" target="17" />
     </bytecodeTargetLevel>
   </component>
