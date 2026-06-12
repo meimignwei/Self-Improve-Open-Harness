@@ -1,4 +1,5 @@
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-engine/src/main/java/com/openharness/engine/QueryEngine.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-engine/src/main/java/com/openharness/engine/task/TaskManager.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-engine/src/main/java/com/openharness/engine/tool/BaseTool.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-engine/src/main/java/com/openharness/engine/tool/ToolExecutionContext.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-engine/src/main/java/com/openharness/engine/tool/ToolRegistry.java

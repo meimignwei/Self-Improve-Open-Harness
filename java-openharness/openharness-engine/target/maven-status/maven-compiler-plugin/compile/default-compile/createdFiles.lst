@@ -1,9 +1,13 @@
-com/openharness/permissions/PermissionMode.class
-com/openharness/engine/QueryEngine.class
+com/openharness/engine/task/TaskManager$TaskType.class
+com/openharness/engine/task/TaskManager.class
 com/openharness/permissions/PermissionChecker.class
 com/openharness/engine/tool/ToolRegistry.class
 com/openharness/engine/tool/BaseTool.class
 com/openharness/engine/QueryEngine$TurnResult.class
 com/openharness/permissions/PermissionDecision.class
+com/openharness/permissions/PermissionMode.class
+com/openharness/engine/QueryEngine.class
+com/openharness/engine/task/TaskManager$TaskStatus.class
+com/openharness/engine/task/TaskManager$TaskRecord.class
 com/openharness/permissions/PathRule.class
 com/openharness/engine/tool/ToolExecutionContext.class
