@@ -1,0 +1,14 @@
+version: '3.9'
+
+services:
+  openharness:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - OTEL_SERVICE_NAME=openharness-java
+      - JAVA_TOOL_OPTIONS=-XX:+UseZGC
+    volumes:
+      - ~/.openharness:/home/openharness/.openharness

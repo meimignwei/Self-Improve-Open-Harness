@@ -1,0 +1,9 @@
+target/
+.idea/
+*.iml
+.git/
+.gitignore
+docker/
+*.log
+*.tmp
+node_modules/
