@@ -5,25 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="9ddf2644-fc40-48f7-bbe2-450469ebe964" name="Changes" comment="重构">
-      <change afterPath="$PROJECT_DIR$/.idea/encodings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/java-技术方案/00-最高原则与索引.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/java-技术方案/01-项目总览与技术栈.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/java-技术方案/02-项目结构与Maven模块.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/java-技术方案/03-核心引擎与API层.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/java-技术方案/04-工具系统与权限.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/java-技术方案/05-记忆、Swarm与渠道.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/java-技术方案/06-配置、UI与服务层.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/java-技术方案/07-认证与扩展系统.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/java-技术方案/08-协调器、任务、桥接与沙箱.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/java-技术方案/09-辅助功能与工具类.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/java-技术方案/10-ohmo个人代理层.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/java-技术方案/11-可观测性架构.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/java-技术方案/12-数据模型与异步映射.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/java-技术方案/13-测试策略.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/java-技术方案/14-实施计划与部署.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/compiler.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-observability/target/maven-status/maven-compiler-plugin/compile/default-compile/createdFiles.lst" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-observability/target/maven-status/maven-compiler-plugin/compile/default-compile/createdFiles.lst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-observability/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-observability/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -112,7 +95,31 @@
       <option name="project" value="LOCAL" />
       <updated>1781240225556</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="重构">
+      <option name="closed" value="true" />
+      <created>1781242593823</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1781242593823</updated>
+    </task>
+    <task id="LOCAL-00004" summary="重构">
+      <option name="closed" value="true" />
+      <created>1781242596299</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1781242596299</updated>
+    </task>
+    <task id="LOCAL-00005" summary="重构">
+      <option name="closed" value="true" />
+      <created>1781243358490</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1781243358490</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
