@@ -1,0 +1,16 @@
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-api/src/main/java/com/openharness/api/AnthropicMessagesClient.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-api/src/main/java/com/openharness/api/ApiError.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-api/src/main/java/com/openharness/api/ApiFormat.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-api/src/main/java/com/openharness/api/ApiRetryPolicy.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-api/src/main/java/com/openharness/api/OpenAICompatibleClient.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-api/src/main/java/com/openharness/api/ProviderInfo.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-api/src/main/java/com/openharness/api/ProviderRegistry.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-api/src/main/java/com/openharness/api/ProviderSpec.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-api/src/main/java/com/openharness/api/StreamOptions.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-api/src/main/java/com/openharness/api/StreamingApiClient.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-api/src/main/java/com/openharness/api/ToolDefinition.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-api/src/main/java/com/openharness/auth/ApiKeyFlow.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-api/src/main/java/com/openharness/auth/AuthFlow.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-api/src/main/java/com/openharness/auth/AuthManager.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-api/src/main/java/com/openharness/auth/CredentialStorage.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-api/src/main/java/com/openharness/auth/DeviceCodeFlow.java

@@ -1,0 +1,12 @@
+com/openharness/config/SandboxSettings.class
+com/openharness/config/Settings.class
+com/openharness/config/MemorySettings.class
+com/openharness/config/SandboxSettings$DockerSandboxSettings.class
+com/openharness/config/PermissionSettings.class
+com/openharness/config/SandboxSettings$SandboxFilesystemSettings.class
+com/openharness/config/ProviderProfile.class
+com/openharness/config/Paths.class
+com/openharness/config/AtomicFileWriter.class
+com/openharness/config/WebSettings.class
+com/openharness/config/SandboxSettings$SandboxNetworkSettings.class
+com/openharness/config/PermissionSettings$PathRuleConfig.class

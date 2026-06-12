@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.openharness</groupId>
+        <artifactId>openharness-parent</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>openharness-cli</artifactId>
+    <name>OpenHarness CLI</name>
+    <description>Picocli-based CLI entry point with subcommands</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.openharness</groupId>
+            <artifactId>openharness-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.openharness</groupId>
+            <artifactId>openharness-config</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.openharness</groupId>
+            <artifactId>openharness-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.openharness</groupId>
+            <artifactId>openharness-engine</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.openharness</groupId>
+            <artifactId>openharness-tools</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.openharness</groupId>
+            <artifactId>openharness-extensions</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.openharness</groupId>
+            <artifactId>openharness-ui</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>info.picocli</groupId>
+            <artifactId>picocli</artifactId>
+            <version>${picocli.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+    </dependencies>
+</project>
