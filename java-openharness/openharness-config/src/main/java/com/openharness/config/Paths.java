@@ -72,6 +72,28 @@ public final class Paths {
         return dataDir().resolve("cron_jobs.json");
     }
 
+    public static Path homeSkillsDir() {
+        Path dir = configDir().resolve("skills");
+        ensureDir(dir);
+        return dir;
+    }
+
+    public static Path homeAgentsDir() {
+        Path dir = configDir().resolve("agents");
+        ensureDir(dir);
+        return dir;
+    }
+
+    public static Path homePluginsDir() {
+        Path dir = configDir().resolve("plugins");
+        ensureDir(dir);
+        return dir;
+    }
+
+    public static Path credentialsPath() {
+        return configDir().resolve("credentials.json");
+    }
+
     public static Path projectConfigDir(Path cwd) {
         Path dir = cwd.toAbsolutePath().normalize().resolve(".openharness");
         ensureDir(dir);

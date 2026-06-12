@@ -1,6 +1,7 @@
 package com.openharness.config;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -52,6 +53,9 @@ public class Settings {
     private String effort = "medium";
     private int passes = 1;
     private boolean verbose = false;
+
+    // ── Hooks ──
+    private List<Map<String, String>> hooks = new ArrayList<>();
 
     // ── Methods ──
 
@@ -204,4 +208,7 @@ public class Settings {
 
     public boolean verbose() { return verbose; }
     public void setVerbose(boolean verbose) { this.verbose = verbose; }
+
+    public List<Map<String, String>> hooks() { return hooks; }
+    public void setHooks(List<Map<String, String>> hooks) { this.hooks = hooks; }
 }
