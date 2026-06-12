@@ -35,6 +35,8 @@
         <!-- Core dependency versions -->
         <jackson.version>2.17.0</jackson.version>
         <picocli.version>4.7.6</picocli.version>
+        <jline.version>3.25.1</jline.version>
+        <jansi.version>2.4.1</jansi.version>
         <okhttp.version>4.12.0</okhttp.version>
         <snakeyaml.version>2.2</snakeyaml.version>
         <cron-utils.version>9.2.1</cron-utils.version>
@@ -56,6 +58,23 @@
 
     <dependencyManagement>
         <dependencies>
+            <!-- JLine 3 (TUI) -->
+            <dependency>
+                <groupId>org.jline</groupId>
+                <artifactId>jline-terminal</artifactId>
+                <version>${jline.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jline</groupId>
+                <artifactId>jline-reader</artifactId>
+                <version>${jline.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.fusesource.jansi</groupId>
+                <artifactId>jansi</artifactId>
+                <version>${jansi.version}</version>
+            </dependency>
+
             <!-- Jackson BOM -->
             <dependency>
                 <groupId>com.fasterxml.jackson</groupId>

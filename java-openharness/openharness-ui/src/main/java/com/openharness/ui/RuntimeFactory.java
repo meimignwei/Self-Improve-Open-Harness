@@ -12,7 +12,7 @@ public final class RuntimeFactory {
         return switch (mode) {
             case BACKEND -> new BackendOutput();
             case PRINT -> new PrintOutput();
-            case TUI -> new PrintOutput(); // TUI requires JLine — fallback to print
+            case TUI -> new BackendOutput(); // TUI has its own loop via TerminalUI — use backend for JSON-Lines fallback
         };
     }
 
