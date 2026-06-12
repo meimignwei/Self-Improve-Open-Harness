@@ -5,6 +5,7 @@ com/openharness/extensions/channels/BaseChannelTest$TestChannel.class
 com/openharness/extensions/memory/MemoryEntryTest.class
 com/openharness/extensions/memory/MemoryTypeTest.class
 com/openharness/extensions/memory/MemoryManagerTest.class
+com/openharness/extensions/skills/SkillLoaderBundledTest.class
 com/openharness/extensions/memory/MemorySignatureTest.class
 com/openharness/extensions/memory/MemoryFileStoreTest.class
 com/openharness/extensions/memory/MemoryIntegrationTest.class

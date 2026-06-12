@@ -2,11 +2,15 @@
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-common/src/main/java/com/openharness/common/ApiStreamEvent.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-common/src/main/java/com/openharness/common/ContentBlock.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-common/src/main/java/com/openharness/common/ConversationMessage.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-common/src/main/java/com/openharness/common/CronJobRegistry.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-common/src/main/java/com/openharness/common/McpClient.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-common/src/main/java/com/openharness/common/McpToolInfo.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-common/src/main/java/com/openharness/common/OpenHarnessObjectMapper.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-common/src/main/java/com/openharness/common/PublisherAdapter.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-common/src/main/java/com/openharness/common/QueryOptions.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-common/src/main/java/com/openharness/common/Role.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-common/src/main/java/com/openharness/common/StreamEvent.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-common/src/main/java/com/openharness/common/StreamingSpliterator.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-common/src/main/java/com/openharness/common/TeamRegistry.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-common/src/main/java/com/openharness/common/ToolResult.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-common/src/main/java/com/openharness/common/UsageSnapshot.java

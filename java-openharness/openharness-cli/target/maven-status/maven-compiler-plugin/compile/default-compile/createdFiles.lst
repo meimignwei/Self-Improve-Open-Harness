@@ -7,4 +7,5 @@ com/openharness/cli/MainCommand$GatewayCmd.class
 META-INF/native-image/picocli-generated/reflect-config.json
 com/openharness/cli/MainCommand$DoctorCmd.class
 META-INF/native-image/picocli-generated/proxy-config.json
+com/openharness/cli/MainCommand$1.class
 com/openharness/cli/MainCommand$VersionProvider.class

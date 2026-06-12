@@ -1,4 +1,17 @@
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-tools/src/test/java/com/openharness/tools/AskUserQuestionToolTest.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-tools/src/test/java/com/openharness/tools/BriefToolTest.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-tools/src/test/java/com/openharness/tools/ConfigToolTest.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-tools/src/test/java/com/openharness/tools/CronToolsTest.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-tools/src/test/java/com/openharness/tools/ImageGenerationToolTest.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-tools/src/test/java/com/openharness/tools/ImageToTextToolTest.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-tools/src/test/java/com/openharness/tools/LspToolTest.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-tools/src/test/java/com/openharness/tools/McpAuthToolTest.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-tools/src/test/java/com/openharness/tools/McpToolAdapterTest.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-tools/src/test/java/com/openharness/tools/McpToolsTest.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-tools/src/test/java/com/openharness/tools/PlanModeToolsTest.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-tools/src/test/java/com/openharness/tools/RemoteTriggerToolTest.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-tools/src/test/java/com/openharness/tools/SleepToolTest.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-tools/src/test/java/com/openharness/tools/TeamToolsTest.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-tools/src/test/java/com/openharness/tools/TodoWriteToolTest.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-tools/src/test/java/com/openharness/tools/ToolSearchToolTest.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-tools/src/test/java/com/openharness/tools/WorktreeToolsTest.java

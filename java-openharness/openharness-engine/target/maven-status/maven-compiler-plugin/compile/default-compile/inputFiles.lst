@@ -1,4 +1,7 @@
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-engine/src/main/java/com/openharness/engine/AutoCompactState.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-engine/src/main/java/com/openharness/engine/CostTracker.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-engine/src/main/java/com/openharness/engine/QueryEngine.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-engine/src/main/java/com/openharness/engine/ToolCarryover.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-engine/src/main/java/com/openharness/engine/task/TaskManager.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-engine/src/main/java/com/openharness/engine/tool/BaseTool.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-engine/src/main/java/com/openharness/engine/tool/ToolExecutionContext.java

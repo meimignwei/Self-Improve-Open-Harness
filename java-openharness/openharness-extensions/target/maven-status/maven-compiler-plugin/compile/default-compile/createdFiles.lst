@@ -1,6 +1,5 @@
 com/openharness/extensions/commands/CommandRegistry.class
 com/openharness/extensions/mcp/McpServerConfig$HttpConfig.class
-com/openharness/extensions/coordinator/CoordinatorMode$TeamRecord.class
 com/openharness/extensions/keybindings/KeybindingsResolver$1.class
 com/openharness/extensions/voice/VoiceDiagnostics.class
 com/openharness/extensions/services/CompactionService.class
@@ -35,7 +34,6 @@ com/openharness/extensions/services/CompactionService$SessionMemory.class
 com/openharness/extensions/memory/MemoryEntry$ScoredMemory.class
 com/openharness/extensions/swarm/InProcessBackend.class
 com/openharness/extensions/memory/MemoryTools$MemoryReadTool$Input.class
-com/openharness/extensions/services/CronRegistry$CronJob.class
 com/openharness/extensions/services/CronRegistry$JobRunResult.class
 com/openharness/extensions/services/MemoryExtractionService$ExtractionRecord.class
 com/openharness/extensions/services/AutoDreamService.class
@@ -43,7 +41,6 @@ com/openharness/extensions/channels/SlackChannel.class
 com/openharness/extensions/skills/SkillLoader.class
 com/openharness/extensions/autopilot/RepoAutopilotStore.class
 com/openharness/extensions/state/AppStateStore.class
-com/openharness/extensions/mcp/McpToolInfo.class
 com/openharness/extensions/memory/AgentMemoryContext.class
 com/openharness/extensions/mcp/McpServerConfig.class
 com/openharness/extensions/services/CronScheduler.class
@@ -58,7 +55,6 @@ com/openharness/extensions/personalization/FactExtractor$Fact.class
 com/openharness/extensions/utils/ShellUtils.class
 com/openharness/extensions/utils/NetworkGuard$NetworkGuardException.class
 com/openharness/extensions/sandbox/PathValidator$SandboxPathViolation.class
-com/openharness/extensions/coordinator/CoordinatorMode$TeamRegistry.class
 com/openharness/extensions/voice/KeyTerms.class
 com/openharness/extensions/swarm/TeammateBackend.class
 com/openharness/extensions/utils/PlatformCapabilities$Platform.class
@@ -116,6 +112,8 @@ com/openharness/extensions/personalization/SessionHook.class
 com/openharness/extensions/swarm/TeamLifecycle.class
 com/openharness/extensions/hooks/HookResult.class
 com/openharness/extensions/memory/MemoryTools$MemoryReadTool.class
+com/openharness/extensions/coordinator/CoordinatorMode$CoordinatorTeamRegistry.class
+com/openharness/extensions/mcp/McpClientManager$McpTransport.class
 com/openharness/extensions/mcp/McpServerConfig$WebSocketConfig.class
 com/openharness/extensions/bridge/BridgeSessionManager$SessionHandle.class
 com/openharness/extensions/prompts/SystemPromptBuilder$PromptContext.class
@@ -126,6 +124,7 @@ com/openharness/extensions/prompts/SystemPromptBuilder.class
 com/openharness/extensions/channels/FeishuChannel.class
 com/openharness/extensions/themes/LayoutConfig.class
 com/openharness/extensions/services/SessionStorage.class
+com/openharness/extensions/mcp/McpClientManager$StdioTransport.class
 com/openharness/extensions/swarm/TeammateStatus$State.class
 com/openharness/extensions/themes/BuiltinThemes.class
 com/openharness/extensions/memory/MemoryUsageTracker.class
@@ -142,5 +141,4 @@ com/openharness/extensions/swarm/SpawnUtils.class
 com/openharness/extensions/hooks/HookReloader.class
 com/openharness/extensions/autopilot/AutopilotTypes$TaskStatus.class
 com/openharness/extensions/hooks/HookDefinition.class
-com/openharness/extensions/mcp/McpResourceInfo.class
 com/openharness/extensions/voice/StreamSTT.class

@@ -1,7 +1,16 @@
 com/openharness/engine/ToolRegistryIT$3.class
-com/openharness/engine/tool/BaseToolTest.class
 com/openharness/engine/ToolRegistryIT.class
+com/openharness/engine/QueryEngineIT$UpperTool.class
 com/openharness/engine/ToolRegistryIT$4.class
+com/openharness/engine/ToolCarryoverTest.class
 com/openharness/engine/ToolRegistryIT$2.class
+com/openharness/engine/CostTrackerTest.class
+com/openharness/engine/AutoCompactStateTest.class
+com/openharness/engine/QueryEngineIT$EchoTool.class
 com/openharness/engine/tool/BaseToolTest$TestTool.class
 com/openharness/engine/ToolRegistryIT$1.class
+com/openharness/engine/QueryEngineIT$MockClient.class
+com/openharness/engine/QueryEngineIT$UpperTool$Input.class
+com/openharness/engine/QueryEngineIT.class
+com/openharness/engine/tool/BaseToolTest.class
+com/openharness/engine/QueryEngineIT$EchoTool$Input.class

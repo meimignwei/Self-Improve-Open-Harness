@@ -20,9 +20,7 @@
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/mcp/ConnectionState.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/mcp/McpClientManager.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/mcp/McpConnectionState.java
-/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/mcp/McpResourceInfo.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/mcp/McpServerConfig.java
-/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/mcp/McpToolInfo.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/memory/AgentMemoryContext.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/memory/MemoryEntry.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/memory/MemoryFileStore.java
