@@ -1,0 +1,9 @@
+com/openharness/permissions/PermissionMode.class
+com/openharness/engine/QueryEngine.class
+com/openharness/permissions/PermissionChecker.class
+com/openharness/engine/tool/ToolRegistry.class
+com/openharness/engine/tool/BaseTool.class
+com/openharness/engine/QueryEngine$TurnResult.class
+com/openharness/permissions/PermissionDecision.class
+com/openharness/permissions/PathRule.class
+com/openharness/engine/tool/ToolExecutionContext.class

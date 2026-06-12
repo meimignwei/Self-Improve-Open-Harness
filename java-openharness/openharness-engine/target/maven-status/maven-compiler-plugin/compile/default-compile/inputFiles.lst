@@ -1,0 +1,8 @@
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-engine/src/main/java/com/openharness/engine/QueryEngine.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-engine/src/main/java/com/openharness/engine/tool/BaseTool.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-engine/src/main/java/com/openharness/engine/tool/ToolExecutionContext.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-engine/src/main/java/com/openharness/engine/tool/ToolRegistry.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-engine/src/main/java/com/openharness/permissions/PathRule.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-engine/src/main/java/com/openharness/permissions/PermissionChecker.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-engine/src/main/java/com/openharness/permissions/PermissionDecision.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-engine/src/main/java/com/openharness/permissions/PermissionMode.java
