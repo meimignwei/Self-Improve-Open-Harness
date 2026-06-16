@@ -2,50 +2,119 @@ package com.openharness.tools;
 
 import com.openharness.common.AgentRuntime;
 import com.openharness.common.ConversationMessage;
+import com.openharness.common.ContentBlock;
 import com.openharness.common.QueryOptions;
 import com.openharness.common.Role;
 import com.openharness.common.ToolResult;
 import com.openharness.engine.tool.BaseTool;
 import com.openharness.engine.tool.ToolExecutionContext;
+import com.openharness.extensions.coordinator.AgentDefinition;
+import com.openharness.extensions.coordinator.AgentDefinitionsLoader;
+import com.openharness.extensions.swarm.BackendRegistry;
+import com.openharness.extensions.swarm.SpawnResult;
+import com.openharness.extensions.swarm.TeammateBackend;
+import com.openharness.extensions.swarm.TeammateSpec;
+import com.openharness.extensions.coordinator.CoordinatorMode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.List;
+import java.util.Map;
 
 /**
- * Spawn a sub-agent to handle a task autonomously.
- * Only depends on the AgentRuntime interface (not QueryEngine), breaking the circular dep.
+ * Spawn a sub-agent to handle a task autonomously via the swarm backend.
+ * Java equivalent of Python tools/agent_tool.py.
  */
 public class AgentTool extends BaseTool<AgentTool.Input> {
 
+    private static final Logger logger = LoggerFactory.getLogger(AgentTool.class);
+
     private final AgentRuntime agentRuntime;
+    private final AgentDefinitionsLoader definitionsLoader;
 
     public AgentTool(AgentRuntime agentRuntime) {
-        super("agent", "Launch a sub-agent to handle a complex task.", Input.class);
+        super("agent", "Spawn a local background agent task.", Input.class);
         this.agentRuntime = agentRuntime;
+        this.definitionsLoader = new AgentDefinitionsLoader();
+    }
+
+    public AgentTool(AgentRuntime agentRuntime, AgentDefinitionsLoader definitionsLoader) {
+        super("agent", "Spawn a local background agent task.", Input.class);
+        this.agentRuntime = agentRuntime;
+        this.definitionsLoader = definitionsLoader;
     }
 
     @Override
     public ToolResult execute(Input arguments, ToolExecutionContext context) {
-        var messages = java.util.List.of(
-                new ConversationMessage(Role.USER,
-                        java.util.List.of(new com.openharness.common.ContentBlock.TextBlock(arguments.prompt()))));
-
-        QueryOptions opts = QueryOptions.defaults()
-                .withModel(arguments.model() != null ? arguments.model() : null);
-
-        var events = com.openharness.common.PublisherAdapter.toList(
-                agentRuntime.runQuery(messages, opts));
-
-        StringBuilder output = new StringBuilder();
-        boolean hasError = false;
-
-        for (var event : events) {
-            if (event instanceof com.openharness.common.StreamEvent.AssistantTextDelta delta) {
-                output.append(delta.text());
-            } else if (event instanceof com.openharness.common.StreamEvent.ErrorStreamEvent err) {
-                output.append("Error: ").append(err.message());
-                hasError = true;
-            }
+        String mode = arguments.mode() != null ? arguments.mode() : "local_agent";
+        if (!List.of("local_agent", "remote_agent", "in_process_teammate").contains(mode)) {
+            return ToolResult.error("Invalid mode. Use local_agent, remote_agent, or in_process_teammate.");
         }
 
-        return new ToolResult(output.toString(), hasError);
+        // Look up agent definition if subagent_type is specified
+        AgentDefinition agentDef = null;
+        if (arguments.subagentType() != null) {
+            agentDef = definitionsLoader.getDefinition(arguments.subagentType());
+        }
+
+        // Resolve team and agent name
+        String team = arguments.team() != null ? arguments.team() : "default";
+        String agentName = arguments.subagentType() != null ? arguments.subagentType() : "agent";
+        String prompt = arguments.prompt();
+
+        // Use subprocess backend by default so spawned agents are registrable in task manager
+        BackendRegistry registry = BackendRegistry.getInstance();
+        TeammateBackend executor = registry.getExecutor("subprocess");
+
+        String model = arguments.model();
+        if (model == null && agentDef != null && agentDef.model() != null) {
+            model = agentDef.model();
+        }
+
+        List<String> permissions = agentDef != null ? agentDef.permissions() : List.of();
+
+        TeammateSpec config = TeammateSpec.builder()
+                .name(agentName)
+                .team(team)
+                .prompt(prompt)
+                .cwd(context.cwd() != null ? context.cwd().toString() : System.getProperty("user.dir"))
+                .parentSessionId("main")
+                .model(model)
+                .command(arguments.command())
+                .systemPrompt(agentDef != null ? agentDef.systemPrompt() : null)
+                .permissions(permissions)
+                .taskType(mode)
+                .build();
+
+        try {
+            SpawnResult result = executor.spawn(config);
+
+            if (!result.success()) {
+                return ToolResult.error(result.error() != null ? result.error() : "Failed to spawn agent");
+            }
+
+            // Register with TeamRegistry if a team is specified
+            if (arguments.team() != null) {
+                com.openharness.common.TeamRegistry teamRegistry =
+                        com.openharness.common.TeamRegistry.getInstance();
+                try {
+                    teamRegistry.addAgent(arguments.team(), result.taskId());
+                } catch (IllegalArgumentException e) {
+                    teamRegistry.createTeam(arguments.team());
+                    teamRegistry.addAgent(arguments.team(), result.taskId());
+                }
+            }
+
+            String output = String.format(
+                    "Spawned agent %s (task_id=%s, backend=%s, description=%s)",
+                    result.agentId(), result.taskId(), result.backendType(),
+                    arguments.description() != null ? arguments.description() : "");
+
+            return ToolResult.success(output);
+        } catch (Exception e) {
+            logger.error("Failed to spawn agent: {}", e.getMessage(), e);
+            return ToolResult.error(e.getMessage());
+        }
     }
 
     @Override
@@ -53,5 +122,17 @@ public class AgentTool extends BaseTool<AgentTool.Input> {
         return false;
     }
 
-    public record Input(String prompt, String model) {}
+    public record Input(
+            String description,
+            String prompt,
+            String subagentType,
+            String model,
+            String command,
+            String team,
+            String mode) {
+
+        public Input {
+            if (prompt == null) throw new IllegalArgumentException("prompt is required");
+        }
+    }
 }

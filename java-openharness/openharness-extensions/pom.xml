@@ -26,7 +26,7 @@
         </dependency>
         <dependency>
             <groupId>com.openharness</groupId>
-            <artifactId>openharness-tools</artifactId>
+            <artifactId>openharness-engine</artifactId>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>

@@ -26,6 +26,16 @@ public class AgentDefinitionsLoader {
             "Explore", "Plan", "worker", "verification"
     );
 
+    /**
+     * Look up a single agent definition by name.
+     */
+    public AgentDefinition getDefinition(String name) {
+        return loadAll(List.of()).stream()
+                .filter(d -> d.name().equals(name))
+                .findFirst()
+                .orElse(null);
+    }
+
     public List<AgentDefinition> loadAll(List<PluginManifest> plugins) {
         Map<String, AgentDefinition> agents = new LinkedHashMap<>();
 
@@ -118,6 +128,7 @@ public class AgentDefinitionsLoader {
                 getString(fm, "initial_prompt", null),
                 getString(fm, "memory", null),
                 getString(fm, "isolation", null),
+                parsePermissions(fm),
                 getBool(fm, "omit_claude_md", false),
                 getString(fm, "critical_system_reminder", null),
                 getString(fm, "subagent_type", null),
@@ -146,5 +157,20 @@ public class AgentDefinitionsLoader {
         if (v instanceof Boolean b) return b;
         if (v instanceof String s) return Boolean.parseBoolean(s);
         return def;
+    }
+
+    private static List<String> parsePermissions(Map<String, Object> fm) {
+        Object raw = fm.get("permissions");
+        if (raw == null) return List.of();
+        String rawStr = raw.toString().trim();
+        if (rawStr.isEmpty()) return List.of();
+        List<String> result = new ArrayList<>();
+        for (String part : rawStr.split(",")) {
+            String trimmed = part.trim();
+            if (!trimmed.isEmpty()) {
+                result.add(trimmed);
+            }
+        }
+        return result;
     }
 }

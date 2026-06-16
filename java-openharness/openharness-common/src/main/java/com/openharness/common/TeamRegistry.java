@@ -5,51 +5,100 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * In-memory team registry for multi-agent coordination.
- * Shared between coordinator mode and team tools.
+ * Java equivalent of Python coordinator/coordinator_mode.py TeamRegistry.
  */
 public class TeamRegistry {
+
+    private static volatile TeamRegistry instance;
+
     private final ConcurrentHashMap<String, TeamRecord> teams = new ConcurrentHashMap<>();
 
-    public TeamRecord createTeam(String name) {
+    public static synchronized TeamRegistry getInstance() {
+        if (instance == null) {
+            instance = new TeamRegistry();
+        }
+        return instance;
+    }
+
+    public TeamRecord createTeam(String name, String description) {
+        if (teams.containsKey(name)) {
+            throw new IllegalArgumentException("Team '" + name + "' already exists");
+        }
         String id = UUID.randomUUID().toString();
-        TeamRecord record = new TeamRecord(id, name, new ConcurrentHashMap<>(), Instant.now());
+        TeamRecord record = new TeamRecord(id, name, description, new ConcurrentHashMap<>(),
+                new CopyOnWriteArrayList<>(), Instant.now());
+        teams.put(name, record);
         teams.put(id, record);
         return record;
     }
 
-    public void deleteTeam(String teamId) {
-        teams.remove(teamId);
+    public TeamRecord createTeam(String name) {
+        return createTeam(name, "");
     }
 
-    public void addAgent(String teamId, String agentDef, String agentId) {
-        TeamRecord record = teams.get(teamId);
+    public void deleteTeam(String identifier) {
+        TeamRecord record = teams.remove(identifier);
+        if (record == null) {
+            throw new IllegalArgumentException("Team '" + identifier + "' does not exist");
+        }
+        // Remove both name and id entries
+        teams.remove(record.name());
+    }
+
+    public void addAgent(String teamName, String taskId) {
+        TeamRecord record = teams.get(teamName);
+        if (record == null) {
+            throw new IllegalArgumentException("Team '" + teamName + "' does not exist");
+        }
+        record.members().put(taskId, taskId);
+    }
+
+    public void addAgent(String teamName, String agentDef, String agentId) {
+        TeamRecord record = teams.get(teamName);
         if (record != null) {
             record.members().put(agentId, agentDef);
         }
     }
 
-    public void removeAgent(String teamId, String agentId) {
-        TeamRecord record = teams.get(teamId);
+    public void removeAgent(String teamName, String agentId) {
+        TeamRecord record = teams.get(teamName);
         if (record != null) {
             record.members().remove(agentId);
         }
     }
 
-    public List<TeamRecord> listTeams() {
-        return List.copyOf(teams.values());
+    public void sendMessage(String teamName, String message) {
+        TeamRecord record = teams.get(teamName);
+        if (record != null) {
+            record.messages().add(message);
+        }
     }
 
-    public TeamRecord get(String teamId) {
-        return teams.get(teamId);
+    public List<TeamRecord> listTeams() {
+        return teams.values().stream()
+                .distinct()
+                .sorted((a, b) -> a.name().compareTo(b.name()))
+                .toList();
+    }
+
+    public TeamRecord get(String identifier) {
+        return teams.get(identifier);
     }
 
     public record TeamRecord(
             String id,
             String name,
+            String description,
             Map<String, String> members,
-            Instant createdAt
-    ) {}
+            List<String> messages,
+            Instant createdAt) {
+
+        public TeamRecord {
+            if (description == null) description = "";
+        }
+    }
 }

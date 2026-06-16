@@ -1,15 +1,17 @@
 package com.openharness.extensions.swarm;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openharness.common.OpenHarnessObjectMapper;
-import com.openharness.config.AtomicFileWriter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -18,123 +20,177 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 /**
- * Leader-Worker permission synchronization protocol.
- * Worker agents send permission requests that the Leader (UI) approves or denies.
+ * Leader-Worker permission synchronization protocol via file-based mailbox.
  * Java equivalent of Python swarm/permission_sync.py.
  */
 public class PermissionSyncProtocol {
 
-    private final Path syncDir;
+    private static final Logger logger = LoggerFactory.getLogger(PermissionSyncProtocol.class);
+    private static final ObjectMapper MAPPER = OpenHarnessObjectMapper.get();
+
+    private final String teamName;
     private final FileMailbox mailbox;
-    private final Duration defaultTimeout;
+    private final long defaultTimeoutMs;
+    private final Map<String, CompletableFuture<SwarmPermissionResponse>> pendingRequests = new ConcurrentHashMap<>();
 
-    public PermissionSyncProtocol(Path syncDir, FileMailbox mailbox, Duration defaultTimeout) {
-        this.syncDir = syncDir;
+    public PermissionSyncProtocol(String teamName, FileMailbox mailbox, long defaultTimeoutMs) {
+        this.teamName = teamName;
         this.mailbox = mailbox;
-        this.defaultTimeout = defaultTimeout;
-        try {
-            Files.createDirectories(syncDir);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to create sync dir: " + syncDir, e);
-        }
+        this.defaultTimeoutMs = defaultTimeoutMs;
     }
 
-    public PermissionSyncProtocol(Path syncDir, FileMailbox mailbox) {
-        this(syncDir, mailbox, Duration.ofSeconds(30));
+    public PermissionSyncProtocol(String teamName, FileMailbox mailbox) {
+        this(teamName, mailbox, 30_000);
     }
 
-    // ── Worker-side: request permission ──
+    // ------------------------------------------------------------------
+    // Worker-side: request permission from leader
+    // ------------------------------------------------------------------
 
-    public CompletableFuture<PermissionResolution> requestPermission(
-            String workerId, String toolName, JsonNode arguments) {
-        return requestPermission(workerId, toolName, arguments, defaultTimeout);
+    public SwarmPermissionRequest createPermissionRequest(String workerId, String toolName,
+                                                           Map<String, Object> arguments) {
+        return new SwarmPermissionRequest(
+                UUID.randomUUID().toString(),
+                workerId,
+                toolName,
+                arguments,
+                System.currentTimeMillis() / 1000.0);
     }
 
-    public CompletableFuture<PermissionResolution> requestPermission(
-            String workerId, String toolName, JsonNode arguments, Duration timeout) {
+    public CompletableFuture<SwarmPermissionResponse> sendPermissionRequest(
+            SwarmPermissionRequest request, long timeoutMs) {
 
-        String requestId = UUID.randomUUID().toString();
-        PermissionRequest request = new PermissionRequest(
-                requestId, workerId, toolName, arguments, Instant.now());
+        CompletableFuture<SwarmPermissionResponse> future = new CompletableFuture<>();
+        pendingRequests.put(request.requestId, future);
 
-        Path requestFile = syncDir.resolve(requestId + "_req.json");
-        AtomicFileWriter.writeJson(requestFile, request);
+        // Write request to mailbox
+        FileMailbox.MailboxMessage msg = new FileMailbox.MailboxMessage(
+                request.requestId,
+                "permission_request",
+                request.workerId,
+                "leader@" + teamName,
+                request);
+        mailbox.write(msg);
 
-        var payload = OpenHarnessObjectMapper.get().createObjectNode()
-                .put("type", "permission_request")
-                .put("request_id", requestId)
-                .put("worker_id", workerId);
-        mailbox.send("leader", FileMailbox.MailboxMessage.of(
-                workerId, "leader", "permission_request", payload));
-
-        return CompletableFuture.supplyAsync(() -> {
-            long deadline = System.currentTimeMillis() + timeout.toMillis();
-            while (System.currentTimeMillis() < deadline) {
-                Path resolutionFile = syncDir.resolve(requestId + "_res.json");
-                if (Files.exists(resolutionFile)) {
-                    PermissionResolution res = AtomicFileWriter.readJson(
-                            resolutionFile, PermissionResolution.class);
-                    if (res != null) {
-                        try { Files.deleteIfExists(resolutionFile); } catch (IOException ignored) {}
-                        try { Files.deleteIfExists(requestFile); } catch (IOException ignored) {}
-                        return res;
-                    }
-                }
-                try {
-                    Thread.sleep(200);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
+        // Set up timeout
+        CompletableFuture.delayedExecutor(timeoutMs, TimeUnit.MILLISECONDS).execute(() -> {
+            if (!future.isDone()) {
+                future.complete(new SwarmPermissionResponse(
+                        request.requestId, request.workerId, "denied", "timeout", null));
             }
-            return new PermissionResolution(requestId, "denied",
-                    "timeout", null, Instant.now());
         });
+
+        return future;
     }
 
-    // ── Leader-side: process permission requests ──
+    public CompletableFuture<SwarmPermissionResponse> sendPermissionRequest(
+            SwarmPermissionRequest request) {
+        return sendPermissionRequest(request, defaultTimeoutMs);
+    }
 
-    public void processPermissionRequests(Consumer<PermissionRequest> handler) {
-        try (var files = Files.newDirectoryStream(syncDir, "*_req.json")) {
-            for (Path f : files) {
+    // ------------------------------------------------------------------
+    // Leader-side: handle incoming permission requests
+    // ------------------------------------------------------------------
+
+    public void handlePermissionRequests(Consumer<SwarmPermissionRequest> handler) {
+        FileMailbox leaderMailbox = new FileMailbox(teamName, "leader");
+        List<FileMailbox.MailboxMessage> messages = leaderMailbox.readAll(true);
+
+        for (FileMailbox.MailboxMessage msg : messages) {
+            if ("permission_request".equals(msg.type)) {
                 try {
-                    PermissionRequest request = AtomicFileWriter.readJson(
-                            f, PermissionRequest.class);
-                    if (request != null && !Files.exists(
-                            syncDir.resolve(request.requestId() + "_res.json"))) {
+                    SwarmPermissionRequest request = MAPPER.convertValue(
+                            msg.payload, SwarmPermissionRequest.class);
+                    if (request != null && !pendingRequests.containsKey(request.requestId)) {
                         handler.accept(request);
                     }
                 } catch (Exception e) {
-                    System.err.println("Failed to process request file: " + f);
+                    logger.warn("Failed to parse permission request from {}", msg.sender, e);
                 }
             }
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to list requests", e);
         }
     }
 
-    public void resolve(String requestId, String decision, String reason, Map<String, Object> metadata) {
-        PermissionResolution resolution = new PermissionResolution(
-                requestId, decision, reason, metadata, Instant.now());
-        Path resolutionFile = syncDir.resolve(requestId + "_res.json");
-        AtomicFileWriter.writeJson(resolutionFile, resolution);
+    public void sendPermissionResponse(SwarmPermissionResponse response) {
+        FileMailbox.MailboxMessage msg = new FileMailbox.MailboxMessage(
+                response.requestId,
+                "permission_response",
+                "leader",
+                response.workerId + "@" + teamName,
+                response);
+        mailbox.write(msg);
+        logger.debug("Sent permission response: {} -> {}", response.requestId, response.decision);
     }
 
-    // ── Types ──
+    public SwarmPermissionResponse pollPermissionResponse(String requestId, long timeoutMs) {
+        long deadline = System.currentTimeMillis() + timeoutMs;
+        FileMailbox workerMailbox = new FileMailbox(teamName, requestId);
 
-    public record PermissionRequest(
-            String requestId,
-            String workerId,
-            String toolName,
-            JsonNode arguments,
-            Instant timestamp
-    ) {}
+        while (System.currentTimeMillis() < deadline) {
+            List<FileMailbox.MailboxMessage> messages = workerMailbox.readAll(true);
+            for (FileMailbox.MailboxMessage msg : messages) {
+                if ("permission_response".equals(msg.type)) {
+                    try {
+                        SwarmPermissionResponse response = MAPPER.convertValue(
+                                msg.payload, SwarmPermissionResponse.class);
+                        if (response != null && response.requestId.equals(requestId)) {
+                            workerMailbox.markRead(msg.id);
+                            return response;
+                        }
+                    } catch (Exception e) {
+                        logger.warn("Failed to parse permission response", e);
+                    }
+                }
+            }
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+        return new SwarmPermissionResponse(requestId, null, "denied", "timeout", null);
+    }
 
-    public record PermissionResolution(
-            String requestId,
-            String decision,  // "approved" | "denied"
-            String reason,
-            Map<String, Object> metadata,
-            Instant timestamp
-    ) {}
+    // ------------------------------------------------------------------
+    // Types (Python SwarmPermissionRequest / SwarmPermissionResponse)
+    // ------------------------------------------------------------------
+
+    public static class SwarmPermissionRequest {
+        @JsonProperty("request_id") public String requestId;
+        @JsonProperty("worker_id") public String workerId;
+        @JsonProperty("tool_name") public String toolName;
+        @JsonProperty("arguments") public Map<String, Object> arguments;
+        @JsonProperty("timestamp") public double timestamp;
+
+        public SwarmPermissionRequest() {}
+
+        public SwarmPermissionRequest(String requestId, String workerId, String toolName,
+                                       Map<String, Object> arguments, double timestamp) {
+            this.requestId = requestId;
+            this.workerId = workerId;
+            this.toolName = toolName;
+            this.arguments = arguments;
+            this.timestamp = timestamp;
+        }
+    }
+
+    public static class SwarmPermissionResponse {
+        @JsonProperty("request_id") public String requestId;
+        @JsonProperty("worker_id") public String workerId;
+        @JsonProperty("decision") public String decision; // "approved" | "denied"
+        @JsonProperty("reason") public String reason;
+        @JsonProperty("metadata") public Map<String, Object> metadata;
+
+        public SwarmPermissionResponse() {}
+
+        public SwarmPermissionResponse(String requestId, String workerId, String decision,
+                                        String reason, Map<String, Object> metadata) {
+            this.requestId = requestId;
+            this.workerId = workerId;
+            this.decision = decision;
+            this.reason = reason;
+            this.metadata = metadata;
+        }
+    }
 }

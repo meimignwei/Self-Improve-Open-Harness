@@ -3,17 +3,15 @@ package com.openharness.extensions.swarm;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
-import java.nio.file.Path;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 /**
- * Specifications for spawning a teammate agent.
+ * Configuration for spawning a teammate (any execution mode).
  * Java equivalent of Python swarm/types.py TeammateSpawnConfig.
  */
 @JsonDeserialize
-public record TeammateSpec(
+public record TeammateSpawnConfig(
         @JsonProperty("name") String name,
         @JsonProperty("team") String team,
         @JsonProperty("prompt") String prompt,
@@ -28,15 +26,12 @@ public record TeammateSpec(
         @JsonProperty("permissions") List<String> permissions,
         @JsonProperty("plan_mode_required") boolean planModeRequired,
         @JsonProperty("allow_permission_prompts") boolean allowPermissionPrompts,
-        @JsonProperty("worktree_path") Path worktreePath,
+        @JsonProperty("worktree_path") String worktreePath,
         @JsonProperty("session_id") String sessionId,
         @JsonProperty("subscriptions") List<String> subscriptions,
-        @JsonProperty("task_type") String taskType,
-        @JsonProperty("env") Map<String, String> env,
-        @JsonProperty("leader_mailbox_path") Path leaderMailboxPath) {
+        @JsonProperty("task_type") String taskType) {
 
-    public TeammateSpec {
-        if (team == null) team = "";
+    public TeammateSpawnConfig {
         if (model == null) model = null;
         if (command == null) command = null;
         if (systemPrompt == null) systemPrompt = null;
@@ -48,24 +43,15 @@ public record TeammateSpec(
         if (sessionId == null) sessionId = UUID.randomUUID().toString();
         if (subscriptions == null) subscriptions = List.of();
         if (taskType == null) taskType = "local_agent";
-        if (env == null) env = Map.of();
-        if (leaderMailboxPath == null) leaderMailboxPath = null;
     }
 
-    public String agentType() {
-        return name;
-    }
-
-    /**
-     * Builder for convenient construction in Java code.
-     */
     public static Builder builder() {
         return new Builder();
     }
 
     public static class Builder {
         private String name;
-        private String team = "";
+        private String team;
         private String prompt;
         private String cwd;
         private String parentSessionId;
@@ -78,39 +64,35 @@ public record TeammateSpec(
         private List<String> permissions = List.of();
         private boolean planModeRequired;
         private boolean allowPermissionPrompts;
-        private Path worktreePath;
+        private String worktreePath;
         private String sessionId;
         private List<String> subscriptions = List.of();
         private String taskType = "local_agent";
-        private Map<String, String> env = Map.of();
-        private Path leaderMailboxPath;
 
         public Builder name(String name) { this.name = name; return this; }
         public Builder team(String team) { this.team = team; return this; }
         public Builder prompt(String prompt) { this.prompt = prompt; return this; }
         public Builder cwd(String cwd) { this.cwd = cwd; return this; }
-        public Builder parentSessionId(String id) { this.parentSessionId = id; return this; }
+        public Builder parentSessionId(String parentSessionId) { this.parentSessionId = parentSessionId; return this; }
         public Builder model(String model) { this.model = model; return this; }
         public Builder command(String command) { this.command = command; return this; }
-        public Builder systemPrompt(String sp) { this.systemPrompt = sp; return this; }
-        public Builder systemPromptMode(String mode) { this.systemPromptMode = mode; return this; }
+        public Builder systemPrompt(String systemPrompt) { this.systemPrompt = systemPrompt; return this; }
+        public Builder systemPromptMode(String systemPromptMode) { this.systemPromptMode = systemPromptMode; return this; }
         public Builder color(String color) { this.color = color; return this; }
-        public Builder colorOverride(String color) { this.colorOverride = color; return this; }
-        public Builder permissions(List<String> p) { this.permissions = p; return this; }
-        public Builder planModeRequired(boolean b) { this.planModeRequired = b; return this; }
-        public Builder allowPermissionPrompts(boolean b) { this.allowPermissionPrompts = b; return this; }
-        public Builder worktreePath(Path p) { this.worktreePath = p; return this; }
-        public Builder sessionId(String id) { this.sessionId = id; return this; }
-        public Builder subscriptions(List<String> s) { this.subscriptions = s; return this; }
-        public Builder taskType(String t) { this.taskType = t; return this; }
-        public Builder env(Map<String, String> e) { this.env = e; return this; }
-        public Builder leaderMailboxPath(Path p) { this.leaderMailboxPath = p; return this; }
+        public Builder colorOverride(String colorOverride) { this.colorOverride = colorOverride; return this; }
+        public Builder permissions(List<String> permissions) { this.permissions = permissions; return this; }
+        public Builder planModeRequired(boolean planModeRequired) { this.planModeRequired = planModeRequired; return this; }
+        public Builder allowPermissionPrompts(boolean allowPermissionPrompts) { this.allowPermissionPrompts = allowPermissionPrompts; return this; }
+        public Builder worktreePath(String worktreePath) { this.worktreePath = worktreePath; return this; }
+        public Builder sessionId(String sessionId) { this.sessionId = sessionId; return this; }
+        public Builder subscriptions(List<String> subscriptions) { this.subscriptions = subscriptions; return this; }
+        public Builder taskType(String taskType) { this.taskType = taskType; return this; }
 
-        public TeammateSpec build() {
-            return new TeammateSpec(name, team, prompt, cwd, parentSessionId,
+        public TeammateSpawnConfig build() {
+            return new TeammateSpawnConfig(name, team, prompt, cwd, parentSessionId,
                     model, command, systemPrompt, systemPromptMode, color, colorOverride,
                     permissions, planModeRequired, allowPermissionPrompts,
-                    worktreePath, sessionId, subscriptions, taskType, env, leaderMailboxPath);
+                    worktreePath, sessionId, subscriptions, taskType);
         }
     }
 }
