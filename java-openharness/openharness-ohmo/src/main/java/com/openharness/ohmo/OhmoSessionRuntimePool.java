@@ -1,7 +1,9 @@
 package com.openharness.ohmo;
 
+import com.openharness.common.AgentRuntime;
 import com.openharness.common.StreamEvent;
 import com.openharness.common.UsageSnapshot;
+import com.openharness.extensions.coordinator.CoordinatorMode;
 
 import java.nio.file.Path;
 import java.security.MessageDigest;
@@ -38,24 +40,33 @@ public class OhmoSessionRuntimePool {
     private String providerProfile;
     private final String model;
     private final Integer maxTurns;
+    private final AgentRuntime engine;
     private final Map<String, RuntimeBundle> bundles = new ConcurrentHashMap<>();
     private final OhmoSessionBackend sessionBackend;
     private final GroupRegistry groupRegistry;
 
     public OhmoSessionRuntimePool(Path workspaceRoot, String providerProfile) {
-        this(workspaceRoot, providerProfile, null, null);
+        this(workspaceRoot, providerProfile, null, null, null);
     }
 
     public OhmoSessionRuntimePool(Path workspaceRoot, String providerProfile,
                                   String model, Integer maxTurns) {
+        this(workspaceRoot, providerProfile, model, maxTurns, null);
+    }
+
+    public OhmoSessionRuntimePool(Path workspaceRoot, String providerProfile,
+                                  String model, Integer maxTurns, AgentRuntime engine) {
         this.cwd = System.getProperty("user.dir");
         this.workspaceRoot = workspaceRoot;
         this.providerProfile = providerProfile;
         this.model = model;
         this.maxTurns = maxTurns;
+        this.engine = engine;
         this.sessionBackend = new OhmoSessionBackend(workspaceRoot);
         this.groupRegistry = new GroupRegistry(workspaceRoot);
-        this.bundles.put("_gateway_config", new RuntimeBundle("_gateway_config", Path.of(cwd), providerProfile, workspaceRoot));
+        RuntimeBundle gwBundle = new RuntimeBundle("_gateway_config", Path.of(cwd), providerProfile, workspaceRoot);
+        if (engine != null) gwBundle.setEngine(engine);
+        this.bundles.put("_gateway_config", gwBundle);
     }
 
     public int activeSessions() {
@@ -98,6 +109,8 @@ public class OhmoSessionRuntimePool {
             Map<String, Object> tm = (Map<String, Object>) snapshot.get("tool_metadata");
             if (tm != null) bundle.setToolMetadata(tm);
         }
+
+        if (engine != null) bundle.setEngine(engine);
 
         bundles.put(sessionKey, bundle);
         return bundle;
@@ -181,7 +194,12 @@ public class OhmoSessionRuntimePool {
     private void streamEngineMessage(RuntimeBundle bundle, MessageBus.InboundMessage message,
                                       String sessionKey, String userPrompt,
                                       Consumer<GatewayStreamUpdate> onUpdate) {
-        bundle.setSystemPrompt(buildRuntimeSystemPrompt(bundle, userPrompt));
+        // If coordinator mode is enabled, override system prompt with coordinator prompt
+        if (CoordinatorMode.isEnabled()) {
+            bundle.setSystemPrompt(CoordinatorMode.getCoordinatorSystemPrompt());
+        } else {
+            bundle.setSystemPrompt(buildRuntimeSystemPrompt(bundle, userPrompt));
+        }
 
         // Emit thinking progress
         onUpdate.accept(new GatewayStreamUpdate("progress",
@@ -224,6 +242,10 @@ public class OhmoSessionRuntimePool {
                 .withMaxTurns(bundle.maxTurns() > 0 ? bundle.maxTurns() : 10);
         if (bundle.model() != null) queryOpts = queryOpts.withModel(bundle.model());
         if (bundle.systemPrompt() != null) queryOpts = queryOpts.withSystemPrompt(bundle.systemPrompt());
+        // Limit tools to coordinator tool set when coordinator mode is enabled
+        if (CoordinatorMode.isEnabled()) {
+            queryOpts = queryOpts.withAllowedTools(CoordinatorMode.getTools());
+        }
 
         bundle.engine().runQuery(convertToConversationMessages(bundle.messages()), queryOpts)
                 .subscribe(subscriber);

@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: com.openharness.tools.ImageGenerationToolTest
 -------------------------------------------------------------------------------
-Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 60.20 s -- in com.openharness.tools.ImageGenerationToolTest
+Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.578 s -- in com.openharness.tools.ImageGenerationToolTest

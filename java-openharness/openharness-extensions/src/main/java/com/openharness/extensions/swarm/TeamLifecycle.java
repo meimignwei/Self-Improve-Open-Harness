@@ -150,6 +150,105 @@ public class TeamLifecycle {
         return true;
     }
 
+    public void setMultipleMemberModes(String teamName, Map<String, String> nameToMode) {
+        TeamFile team = getTeam(teamName);
+        if (team == null) return;
+
+        boolean changed = false;
+        for (Map.Entry<String, TeamMember> e : team.members.entrySet()) {
+            String mode = nameToMode.get(e.getValue().name);
+            if (mode != null && !mode.equals(e.getValue().mode)) {
+                TeamMember updated = new TeamMember(e.getValue());
+                updated.mode = mode;
+                team.members.put(e.getKey(), updated);
+                changed = true;
+            }
+        }
+        if (changed) {
+            team.save(getTeamFilePath(teamName));
+        }
+    }
+
+    public boolean setMemberActive(String teamName, String memberName, boolean active) {
+        TeamFile team = getTeam(teamName);
+        if (team == null) return false;
+
+        for (Map.Entry<String, TeamMember> e : team.members.entrySet()) {
+            if (e.getValue().name.equals(memberName) && e.getValue().isActive != active) {
+                TeamMember updated = new TeamMember(e.getValue());
+                updated.isActive = active;
+                team.members.put(e.getKey(), updated);
+                team.save(getTeamFilePath(teamName));
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public TeamFile removeMemberByAgentId(String teamName, String agentId) {
+        Path path = getTeamFilePath(teamName);
+        TeamFile team = requireTeam(teamName, path);
+        if (team.members.remove(agentId) != null) {
+            team.save(path);
+        }
+        return team;
+    }
+
+    // ------------------------------------------------------------------
+    // Hidden pane management
+    // ------------------------------------------------------------------
+
+    public void addHiddenPaneId(String teamName, String paneId) {
+        Path path = getTeamFilePath(teamName);
+        TeamFile team = requireTeam(teamName, path);
+        if (!team.hiddenPaneIds.contains(paneId)) {
+            team.hiddenPaneIds.add(paneId);
+            team.save(path);
+        }
+    }
+
+    public void removeHiddenPaneId(String teamName, String paneId) {
+        Path path = getTeamFilePath(teamName);
+        TeamFile team = requireTeam(teamName, path);
+        if (team.hiddenPaneIds.remove(paneId)) {
+            team.save(path);
+        }
+    }
+
+    public java.util.Set<String> getHiddenPaneIds(String teamName) {
+        TeamFile team = getTeam(teamName);
+        if (team == null) return java.util.Set.of();
+        return new java.util.LinkedHashSet<>(team.hiddenPaneIds);
+    }
+
+    // ------------------------------------------------------------------
+    // Orphan pane cleanup
+    // ------------------------------------------------------------------
+
+    /**
+     * Kill tmux panes that belong to team members no longer in the team file.
+     * Keeps any pane whose ID appears in {@code keepPaneIds}.
+     */
+    public static void killOrphanedTeammatePanes(String teamName, java.util.Set<String> keepPaneIds) {
+        TeamLifecycle lifecycle = new TeamLifecycle();
+        TeamFile team = lifecycle.getTeam(teamName);
+        if (team == null) return;
+
+        for (TeamMember member : team.members.values()) {
+            String paneId = member.tmuxPaneId;
+            if (paneId != null && !paneId.isEmpty() && !keepPaneIds.contains(paneId)) {
+                try {
+                    new ProcessBuilder("tmux", "kill-pane", "-t", paneId)
+                            .start().waitFor(5, java.util.concurrent.TimeUnit.SECONDS);
+                    logger.info("Killed orphaned tmux pane {} for member {} (team={})",
+                            paneId, member.name, teamName);
+                } catch (Exception e) {
+                    logger.debug("Failed to kill orphaned pane {}: {}", paneId, e.getMessage());
+                }
+            }
+        }
+    }
+
     // ------------------------------------------------------------------
     // Session cleanup
     // ------------------------------------------------------------------

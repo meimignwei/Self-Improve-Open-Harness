@@ -2,7 +2,6 @@ com/openharness/ohmo/ChannelManager$DiscordChannelConnection.class
 com/openharness/ohmo/MessageBus.class
 com/openharness/ohmo/OhmoGatewayService.class
 com/openharness/ohmo/OhmoMemoryBackend$MemoryItem.class
-com/openharness/ohmo/ChannelManager$FeishuChannelConnection.class
 com/openharness/ohmo/WorkspaceManager.class
 com/openharness/ohmo/OhmoSessionBackend.class
 com/openharness/ohmo/GatewayConfig.class
@@ -19,10 +18,12 @@ com/openharness/ohmo/GroupRegistry.class
 com/openharness/ohmo/OhmoSessionRuntimePool$StreamEventSubscriber.class
 com/openharness/ohmo/ChannelManager$TelegramChannelConnection.class
 com/openharness/ohmo/OhmoMemoryBackend.class
+com/openharness/ohmo/FeishuChannel.class
 com/openharness/ohmo/OhmoSessionRuntimePool$GatewayStreamUpdate.class
 com/openharness/ohmo/ChannelManager.class
 com/openharness/ohmo/OhmoCLI.class
 com/openharness/ohmo/MessageBus$OutboundMessage.class
 com/openharness/ohmo/MessageBus$InboundMessage.class
+com/openharness/ohmo/GatewayEngineFactory.class
 com/openharness/ohmo/GroupRegistry$ManagedGroupRecord.class
 com/openharness/ohmo/OhmoSystemPromptBuilder.class

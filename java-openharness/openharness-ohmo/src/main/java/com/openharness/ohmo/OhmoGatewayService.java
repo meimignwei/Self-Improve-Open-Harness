@@ -1,5 +1,6 @@
 package com.openharness.ohmo;
 
+import com.openharness.common.AgentRuntime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,6 +24,7 @@ public class OhmoGatewayService {
     private final OhmoSessionRuntimePool runtimePool;
     private final OhmoGatewayBridge bridge;
     private final GatewayConfig config;
+    private final GatewayEngineFactory engineFactory;
     private final AtomicBoolean running = new AtomicBoolean(false);
     private final CountDownLatch shutdownLatch = new CountDownLatch(1);
     private Thread bridgeThread;
@@ -32,9 +34,15 @@ public class OhmoGatewayService {
         Path workspaceRoot = wm.resolve(workspace);
         wm.initialize(workspaceRoot);
         this.config = GatewayConfig.loadFromWorkspace(workspaceRoot);
+
+        // Create the full engine stack
+        this.engineFactory = new GatewayEngineFactory(workspaceRoot, config);
+        AgentRuntime engine = engineFactory.engine();
+
         this.bus = new MessageBus();
         this.channelManager = new ChannelManager(config, bus);
-        this.runtimePool = new OhmoSessionRuntimePool(workspaceRoot, config.providerProfile());
+        this.runtimePool = new OhmoSessionRuntimePool(workspaceRoot, config.providerProfile(),
+                null, null, engine);
         this.bridge = new OhmoGatewayBridge(bus, runtimePool, workspace);
     }
 

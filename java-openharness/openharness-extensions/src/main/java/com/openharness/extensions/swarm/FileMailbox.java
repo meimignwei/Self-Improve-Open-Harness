@@ -48,15 +48,19 @@ public class FileMailbox {
     }
 
     /**
-     * Write a message to the mailbox.
+     * Write a message to the mailbox atomically (.tmp + rename).
      */
     public void write(MailboxMessage message) {
         String filename = message.id + ".json";
         Path msgFile = mailboxDir.resolve(filename);
+        Path tmpFile = mailboxDir.resolve(filename + ".tmp");
         try {
-            MAPPER.writeValue(msgFile.toFile(), message);
+            MAPPER.writeValue(tmpFile.toFile(), message);
+            Files.move(tmpFile, msgFile, java.nio.file.StandardCopyOption.ATOMIC_MOVE,
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING);
             logger.debug("[FileMailbox] {} wrote message {} to {}", agentId, message.id, msgFile);
         } catch (IOException e) {
+            try { Files.deleteIfExists(tmpFile); } catch (IOException ignored) {}
             throw new RuntimeException("Failed to write mailbox message: " + msgFile, e);
         }
     }
@@ -173,6 +177,121 @@ public class FileMailbox {
                 sender,
                 recipient,
                 Map.of("content", content));
+    }
+
+    /**
+     * Factory: worker -> leader permission request.
+     */
+    public static MailboxMessage createPermissionRequestMessage(
+            String sender, String recipient, Object requestPayload) {
+        return new MailboxMessage(
+                UUID.randomUUID().toString(),
+                "permission_request",
+                sender,
+                recipient,
+                requestPayload);
+    }
+
+    /**
+     * Factory: leader -> worker permission response.
+     */
+    public static MailboxMessage createPermissionResponseMessage(
+            String sender, String recipient, Object responsePayload) {
+        return new MailboxMessage(
+                UUID.randomUUID().toString(),
+                "permission_response",
+                sender,
+                recipient,
+                responsePayload);
+    }
+
+    /**
+     * Factory: worker -> leader sandbox permission request (network access).
+     */
+    public static MailboxMessage createSandboxPermissionRequestMessage(
+            String sender, String recipient, Object requestPayload) {
+        return new MailboxMessage(
+                UUID.randomUUID().toString(),
+                "sandbox_permission_request",
+                sender,
+                recipient,
+                requestPayload);
+    }
+
+    /**
+     * Factory: leader -> worker sandbox permission response.
+     */
+    public static MailboxMessage createSandboxPermissionResponseMessage(
+            String sender, String recipient, Object responsePayload) {
+        return new MailboxMessage(
+                UUID.randomUUID().toString(),
+                "sandbox_permission_response",
+                sender,
+                recipient,
+                responsePayload);
+    }
+
+    // ------------------------------------------------------------------
+    // Type guards (Python is_permission_request / is_permission_response / etc.)
+    // ------------------------------------------------------------------
+
+    public static boolean isPermissionRequest(MailboxMessage msg) {
+        return "permission_request".equals(msg.type);
+    }
+
+    public static boolean isPermissionResponse(MailboxMessage msg) {
+        return "permission_response".equals(msg.type);
+    }
+
+    public static boolean isSandboxPermissionRequest(MailboxMessage msg) {
+        return "sandbox_permission_request".equals(msg.type);
+    }
+
+    public static boolean isSandboxPermissionResponse(MailboxMessage msg) {
+        return "sandbox_permission_response".equals(msg.type);
+    }
+
+    public static boolean isShutdownRequest(MailboxMessage msg) {
+        return "shutdown".equals(msg.type);
+    }
+
+    public static boolean isIdleNotification(MailboxMessage msg) {
+        return "idle_notification".equals(msg.type);
+    }
+
+    public static boolean isUserMessage(MailboxMessage msg) {
+        return "user_message".equals(msg.type);
+    }
+
+    // ------------------------------------------------------------------
+    // Global helper (Python write_to_mailbox)
+    // ------------------------------------------------------------------
+
+    /**
+     * Write a TeammateMessage to the recipient's mailbox.
+     * Detects team and agent name from the agentId ("name@team" format).
+     * Returns the written MailboxMessage.
+     */
+    public static MailboxMessage writeToMailbox(String senderAgentId,
+                                                 String recipientAgentId,
+                                                 TeammateMessage message) {
+        if (!recipientAgentId.contains("@")) {
+            throw new IllegalArgumentException(
+                    "recipient agentId must be in 'name@team' format, got: " + recipientAgentId);
+        }
+        String[] parts = recipientAgentId.split("@", 2);
+        String recipientName = parts[0];
+        String teamName = parts[1];
+
+        // Resolve sender name from agentId
+        String senderName = senderAgentId.contains("@")
+                ? senderAgentId.split("@", 2)[0]
+                : senderAgentId;
+
+        FileMailbox mailbox = new FileMailbox(teamName, recipientName);
+        MailboxMessage msg = FileMailbox.createUserMessage(senderName, recipientAgentId, message.text());
+        mailbox.write(msg);
+        return msg;
     }
 
     // ------------------------------------------------------------------

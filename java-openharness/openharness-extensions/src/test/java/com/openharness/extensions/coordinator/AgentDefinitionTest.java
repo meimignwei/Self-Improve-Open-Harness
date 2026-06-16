@@ -130,8 +130,12 @@ class AgentDefinitionsLoaderTest {
         var agents = loader.loadAll(List.of());
 
         assertNotNull(agents);
-        // Built-in agents return null from loadBuiltinAgent, so empty list
-        assertTrue(agents.isEmpty());
+        assertEquals(7, agents.size());
+        assertTrue(agents.stream().anyMatch(a -> a.name().equals("general-purpose")));
+        assertTrue(agents.stream().anyMatch(a -> a.name().equals("worker")));
+        assertTrue(agents.stream().anyMatch(a -> a.name().equals("Explore")));
+        assertTrue(agents.stream().anyMatch(a -> a.name().equals("Plan")));
+        assertTrue(agents.stream().anyMatch(a -> a.name().equals("verification")));
     }
 
     @Test

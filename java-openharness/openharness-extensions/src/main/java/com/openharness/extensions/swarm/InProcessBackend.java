@@ -1,11 +1,13 @@
 package com.openharness.extensions.swarm;
 
 import com.openharness.common.AgentRuntime;
+import com.openharness.extensions.coordinator.CoordinatorMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -23,7 +25,7 @@ public class InProcessBackend implements TeammateBackend {
 
     private static final Logger logger = LoggerFactory.getLogger(InProcessBackend.class);
 
-    private final AgentRuntime agentRuntime;
+    private volatile AgentRuntime agentRuntime;
     private final Map<String, TeammateEntry> active = new ConcurrentHashMap<>();
 
     // ThreadLocal for per-teammate context isolation (Java equivalent of Python ContextVar)
@@ -31,6 +33,21 @@ public class InProcessBackend implements TeammateBackend {
 
     public InProcessBackend(AgentRuntime agentRuntime) {
         this.agentRuntime = agentRuntime;
+    }
+
+    /**
+     * Set or replace the AgentRuntime after construction.
+     * Allows BackendRegistry to create the backend first and wire the engine later.
+     */
+    public void setAgentRuntime(AgentRuntime agentRuntime) {
+        this.agentRuntime = agentRuntime;
+    }
+
+    /**
+     * Get the current AgentRuntime, may be null if not yet wired.
+     */
+    public AgentRuntime getAgentRuntime() {
+        return agentRuntime;
     }
 
     // ------------------------------------------------------------------
@@ -203,14 +220,42 @@ public class InProcessBackend implements TeammateBackend {
             }
         } catch (Exception e) {
             logger.error("[in_process] {}: unhandled exception in agent loop", agentId, e);
+            ctx.finalResult = "Error: " + e.getMessage();
+            ctx.finalStatus = "failed";
         } finally {
             ctx.status = "stopped";
             try {
+                // Send idle notification (lightweight)
                 FileMailbox.MailboxMessage idleMsg = FileMailbox.createIdleNotification(
                         agentId, "leader",
                         config.name() + " finished (tools=" + ctx.toolUseCount + ", tokens=" + ctx.totalTokens + ")");
                 FileMailbox leaderMailbox = new FileMailbox(teamName, "leader");
                 leaderMailbox.write(idleMsg);
+
+                // Send task notification XML (structured completion signal)
+                if (CoordinatorMode.isEnabled()) {
+                    Map<String, Integer> usage = new LinkedHashMap<>();
+                    usage.put("total_tokens", ctx.totalTokens);
+                    usage.put("tool_uses", ctx.toolUseCount);
+                    usage.put("duration_ms", (int) (System.currentTimeMillis() - ctx.startedAt));
+
+                    CoordinatorMode.TaskNotification notification =
+                            new CoordinatorMode.TaskNotification(
+                                    agentId,
+                                    ctx.finalStatus != null ? ctx.finalStatus : "completed",
+                                    ctx.finalStatus != null ? ctx.finalStatus + ": " + config.name() + " finished"
+                                            : config.name() + " completed successfully",
+                                    ctx.finalResult != null ? ctx.finalResult : "(no output)",
+                                    usage);
+                    String taskXml = CoordinatorMode.formatTaskNotification(notification);
+                    FileMailbox.MailboxMessage taskMsg = new FileMailbox.MailboxMessage(
+                            UUID.randomUUID().toString(),
+                            "user_message",
+                            agentId,
+                            "leader@" + teamName,
+                            taskXml);
+                    leaderMailbox.write(taskMsg);
+                }
             } catch (Exception e) {
                 // best effort
             }
@@ -221,8 +266,8 @@ public class InProcessBackend implements TeammateBackend {
     }
 
     private void runQueryLoop(TeammateSpec config, TeammateContext ctx, FileMailbox mailbox) {
-        List<Object> messages = new ArrayList<>();
-        messages.add(Map.of("role", "user", "content", config.prompt()));
+        int turnCount = 0;
+        StringBuilder finalText = new StringBuilder();
 
         var queryMessages = java.util.List.of(
                 new com.openharness.common.ConversationMessage(
@@ -234,6 +279,11 @@ public class InProcessBackend implements TeammateBackend {
                 .withModel(config.model() != null ? config.model() : "claude-sonnet-4-6")
                 .withMaxTurns(200);
 
+        // Use worker tools when running as a coordinator worker
+        if (CoordinatorMode.isEnabled()) {
+            opts = opts.withAllowedTools(CoordinatorMode.getWorkerTools());
+        }
+
         try {
             var publisher = agentRuntime.runQuery(queryMessages, opts);
             var events = com.openharness.common.PublisherAdapter.toList(publisher);
@@ -241,14 +291,24 @@ public class InProcessBackend implements TeammateBackend {
             for (var event : events) {
                 if (event instanceof com.openharness.common.StreamEvent.AssistantTextDelta delta) {
                     ctx.totalTokens += estimateTokens(delta.text());
+                    finalText.append(delta.text());
+                }
+
+                if (event instanceof com.openharness.common.StreamEvent.ToolCompleted) {
+                    ctx.toolUseCount++;
+                    turnCount++;
                 }
 
                 if (ctx.abortController.isCancelled()) {
                     logger.debug("[in_process] {}: abort_controller cancelled, stopping query loop", ctx.agentId);
+                    ctx.finalStatus = "killed";
+                    ctx.finalResult = finalText.toString();
                     return;
                 }
 
                 if (drainMailbox(mailbox, ctx)) {
+                    ctx.finalStatus = "killed";
+                    ctx.finalResult = finalText.toString();
                     return;
                 }
 
@@ -256,13 +316,16 @@ public class InProcessBackend implements TeammateBackend {
                     TeammateMessage queued = ctx.messageQueue.poll();
                     if (queued != null) {
                         logger.debug("[in_process] {}: injecting queued message from {}", ctx.agentId, queued.fromAgent());
-                        // Inject as a new user turn - in a full implementation this would
-                        // restart the query loop with the new message
                     }
                 }
             }
+
+            ctx.finalResult = finalText.toString();
+            ctx.finalStatus = "completed";
         } catch (Exception e) {
             logger.error("[in_process] {}: query loop error", ctx.agentId, e);
+            ctx.finalResult = "Error: " + e.getMessage();
+            ctx.finalStatus = "failed";
         }
 
         ctx.status = "idle";
@@ -424,6 +487,8 @@ public class InProcessBackend implements TeammateBackend {
         public final long startedAt = System.currentTimeMillis();
         public volatile int toolUseCount;
         public volatile int totalTokens;
+        public volatile String finalResult;
+        public volatile String finalStatus;
 
         TeammateContext(String agentId, String agentName, String teamName,
                         String parentSessionId, String color, boolean planModeRequired,

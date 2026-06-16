@@ -89,7 +89,7 @@ public class QueryEngine implements AgentRuntime {
         if (systemPrompt.isBlank()) systemPrompt = null;
 
         List<ConversationMessage> conversation = new ArrayList<>(messages);
-        List<ToolDefinition> toolDefs = buildToolDefinitions();
+        List<ToolDefinition> toolDefs = buildToolDefinitions(options.allowedTools().orElse(null));
 
         for (int turn = 0; turn < maxTurns; turn++) {
             StreamOptions streamOpts = StreamOptions.defaults()
@@ -274,8 +274,12 @@ public class QueryEngine implements AgentRuntime {
         }
     }
 
-    private List<ToolDefinition> buildToolDefinitions() {
-        return toolRegistry.listTools().stream()
+    private List<ToolDefinition> buildToolDefinitions(List<String> allowedTools) {
+        var tools = toolRegistry.listTools().stream();
+        if (allowedTools != null && !allowedTools.isEmpty()) {
+            tools = tools.filter(t -> allowedTools.contains(t.name()));
+        }
+        return tools
                 .map(tool -> {
                     JsonNode schema = tool.inputSchema();
                     Map<String, JsonNode> schemaMap = new HashMap<>();

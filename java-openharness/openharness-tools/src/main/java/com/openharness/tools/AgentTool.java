@@ -11,6 +11,7 @@ import com.openharness.engine.tool.ToolExecutionContext;
 import com.openharness.extensions.coordinator.AgentDefinition;
 import com.openharness.extensions.coordinator.AgentDefinitionsLoader;
 import com.openharness.extensions.swarm.BackendRegistry;
+import com.openharness.extensions.swarm.InProcessBackend;
 import com.openharness.extensions.swarm.SpawnResult;
 import com.openharness.extensions.swarm.TeammateBackend;
 import com.openharness.extensions.swarm.TeammateSpec;
@@ -62,9 +63,15 @@ public class AgentTool extends BaseTool<AgentTool.Input> {
         String agentName = arguments.subagentType() != null ? arguments.subagentType() : "agent";
         String prompt = arguments.prompt();
 
-        // Use subprocess backend by default so spawned agents are registrable in task manager
+        // Resolve backend: respect OPENHARNESS_TEAMMATE_MODE env var, default to auto-detection
         BackendRegistry registry = BackendRegistry.getInstance();
-        TeammateBackend executor = registry.getExecutor("subprocess");
+        String backendType = registry.getPreferredBackend(null);
+        TeammateBackend executor = registry.getExecutor(backendType);
+
+        // Wire agentRuntime into InProcessBackend so agents can actually run queries
+        if (executor instanceof InProcessBackend inProc && inProc.getAgentRuntime() == null) {
+            inProc.setAgentRuntime(agentRuntime);
+        }
 
         String model = arguments.model();
         if (model == null && agentDef != null && agentDef.model() != null) {

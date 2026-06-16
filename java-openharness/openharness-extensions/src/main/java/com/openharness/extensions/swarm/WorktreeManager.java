@@ -128,6 +128,54 @@ public final class WorktreeManager {
     }
 
     // ------------------------------------------------------------------
+    // Symlink common directories (node_modules, .venv, etc.)
+    // ------------------------------------------------------------------
+
+    private static final List<String> COMMON_DIRS = List.of(
+            "node_modules", ".venv", ".tox", "__pycache__", "venv", ".env");
+
+    /**
+     * Create symlinks from the original repo's common directories to the worktree.
+     * This avoids re-downloading or re-creating large directories per worktree.
+     */
+    public static void symlinkCommonDirs(Path worktree, Path originalRepo) {
+        if (!Files.exists(originalRepo)) return;
+
+        for (String dirName : COMMON_DIRS) {
+            Path source = originalRepo.resolve(dirName);
+            Path target = worktree.resolve(dirName);
+
+            if (Files.exists(source) && !Files.exists(target)) {
+                try {
+                    Files.createSymbolicLink(target, source.toAbsolutePath());
+                    logger.debug("Symlinked {} -> {}", target, source);
+                } catch (IOException e) {
+                    logger.debug("Failed to symlink {}: {}", dirName, e.getMessage());
+                }
+            }
+        }
+    }
+
+    /**
+     * Remove symlinks created by {@link #symlinkCommonDirs}.
+     */
+    public static void removeSymlinks(Path worktree) {
+        if (!Files.exists(worktree)) return;
+
+        for (String dirName : COMMON_DIRS) {
+            Path target = worktree.resolve(dirName);
+            if (Files.isSymbolicLink(target)) {
+                try {
+                    Files.deleteIfExists(target);
+                    logger.debug("Removed symlink: {}", target);
+                } catch (IOException e) {
+                    logger.debug("Failed to remove symlink {}: {}", dirName, e.getMessage());
+                }
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------
     // Cleanup
     // ------------------------------------------------------------------
 

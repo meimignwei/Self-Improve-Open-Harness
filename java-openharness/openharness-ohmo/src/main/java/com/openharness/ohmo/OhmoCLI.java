@@ -1,5 +1,9 @@
 package com.openharness.ohmo;
 
+import com.openharness.extensions.coordinator.AgentDefinition;
+import com.openharness.extensions.coordinator.AgentDefinitionsLoader;
+import com.openharness.extensions.swarm.*;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -250,6 +254,302 @@ public class OhmoCLI {
         }
     }
 
+    /**
+     * Start an interactive coordinator session from the terminal.
+     * Equivalent to: CLAUDE_CODE_COORDINATOR_MODE=1 oh run
+     */
+    public void run(String model, String profile, boolean coordinator, boolean withChannels) {
+        GatewayConfig gwConfig = GatewayConfig.loadFromWorkspace(workspaceRoot);
+        String effectiveProfile = profile != null ? profile : gwConfig.providerProfile();
+
+        // Enable coordinator mode if requested
+        if (coordinator) {
+            System.setProperty("CLAUDE_CODE_COORDINATOR_MODE", "1");
+        }
+
+        // Create the full engine stack
+        GatewayEngineFactory factory = new GatewayEngineFactory(workspaceRoot, gwConfig);
+        com.openharness.common.AgentRuntime engine = factory.engine();
+
+        // Optionally start channels (Feishu, etc.) for external input
+        OhmoGatewayService gwService = null;
+        if (withChannels) {
+            gwService = new OhmoGatewayService(
+                    System.getProperty("user.dir"), workspaceRoot.toString());
+            gwService.start();
+            System.out.println("Channels started: " + gwConfig.enabledChannels());
+        }
+
+        // Create runtime pool with the engine
+        OhmoSessionRuntimePool pool = new OhmoSessionRuntimePool(
+                workspaceRoot, effectiveProfile, model, null, engine);
+
+        String sessionKey = "term:" + UUID.randomUUID().toString().substring(0, 8);
+        String modeLabel = coordinator ? "coordinator" : "single-agent";
+        System.out.println("ohmo " + modeLabel + " session [" + sessionKey + "]");
+        System.out.println("  workspace: " + workspaceRoot);
+        System.out.println("  profile: " + effectiveProfile);
+        System.out.println("  model: " + (model != null ? model : "default"));
+        if (withChannels) {
+            System.out.println("  channels: " + gwConfig.enabledChannels());
+        }
+        System.out.println("  coordinator mode: " + coordinator);
+        System.out.println("Type your prompt (Ctrl+D or /exit to quit):");
+        System.out.println();
+
+        // Read-eval-print loop
+        try (var scanner = new java.util.Scanner(System.in)) {
+            while (true) {
+                System.out.print("> ");
+                System.out.flush();
+                if (!scanner.hasNextLine()) break;
+                String line = scanner.nextLine().trim();
+
+                if (line.isEmpty()) continue;
+                if (line.equals("/exit") || line.equals("/quit") || line.equals("/q")) break;
+
+                System.out.println();
+                var updates = pool.streamMessage(
+                        new MessageBus.InboundMessage("terminal", sessionKey,
+                                "user", line, false, Map.of(), null),
+                        sessionKey);
+
+                for (var update : updates) {
+                    switch (update.kind()) {
+                        case "text" -> System.out.print(update.text());
+                        case "final" -> {
+                            if (update.text() != null && !update.text().isBlank()) {
+                                System.out.println("\n---");
+                                System.out.println(update.text());
+                            }
+                        }
+                        case "error" -> System.err.println("\n[Error] " + update.text());
+                        case "progress" -> {
+                            if (update.text() != null && !update.text().isBlank()) {
+                                System.out.println("[...] " + update.text());
+                            }
+                        }
+                        case "tool_use" -> {
+                            if (update.text() != null) {
+                                System.out.println("[tool] " + update.text());
+                            }
+                        }
+                    }
+                }
+                System.out.println();
+            }
+        }
+
+        System.out.println("\nShutting down...");
+        if (gwService != null) {
+            gwService.stop();
+        }
+    }
+
+    // ==================================================================
+    // swarm team commands
+    // ==================================================================
+
+    private final TeamLifecycle teamLifecycle = new TeamLifecycle();
+
+    public void teamCreate(String name, String description) {
+        TeamLifecycle.TeamFile team = teamLifecycle.createTeam(name, description != null ? description : "");
+        System.out.println("Team created: " + team.name);
+    }
+
+    public void teamDelete(String name) {
+        teamLifecycle.deleteTeam(name);
+        System.out.println("Team deleted: " + name);
+    }
+
+    public void teamList() {
+        List<TeamLifecycle.TeamFile> teams = teamLifecycle.listTeams();
+        if (teams.isEmpty()) {
+            System.out.println("No teams found.");
+            return;
+        }
+        for (TeamLifecycle.TeamFile team : teams) {
+            System.out.println("  " + team.name + " — " + team.description +
+                    " (members: " + team.members.size() + ", created: " +
+                    java.time.Instant.ofEpochSecond((long) team.createdAt) + ")");
+        }
+    }
+
+    public void teamShow(String name) {
+        TeamLifecycle.TeamFile team = teamLifecycle.getTeam(name);
+        if (team == null) {
+            System.out.println("Team not found: " + name);
+            return;
+        }
+        System.out.println("Team: " + team.name);
+        System.out.println("  description: " + team.description);
+        System.out.println("  created_at: " + java.time.Instant.ofEpochSecond((long) team.createdAt));
+        System.out.println("  lead_agent_id: " + team.leadAgentId);
+        System.out.println("  hidden_panes: " + team.hiddenPaneIds.size());
+        System.out.println("  members:");
+        for (TeamLifecycle.TeamMember m : team.members.values()) {
+            System.out.printf("    - %s (%s) mode=%s active=%s backend=%s%n",
+                    m.name, m.agentId, m.mode, m.isActive, m.backendType);
+        }
+    }
+
+    // ==================================================================
+    // swarm agent commands
+    // ==================================================================
+
+    public void agentSpawn(String teamName, String agentType, String model, String prompt) {
+        if (teamName == null || agentType == null) {
+            System.err.println("Usage: ohmo agent spawn --team <name> --type <agent-type> [--model <m>] [--prompt <p>]");
+            return;
+        }
+
+        // Look up agent definition
+        AgentDefinitionsLoader loader = new AgentDefinitionsLoader();
+        AgentDefinition def = loader.getDefinition(agentType);
+        if (def == null) {
+            System.err.println("Unknown agent type: " + agentType);
+            System.err.println("Available types: " +
+                    loader.loadAll(List.of()).stream().map(AgentDefinition::name).toList());
+            return;
+        }
+
+        // Get existing team
+        TeamLifecycle.TeamFile team = teamLifecycle.getTeam(teamName);
+        if (team == null) {
+            System.err.println("Team not found: " + teamName);
+            return;
+        }
+
+        String agentId = agentType + "-" + UUID.randomUUID().toString().substring(0, 6);
+        String effectiveModel = model != null ? model : def.model();
+        String effectivePrompt = prompt != null ? prompt : def.systemPrompt();
+
+        TeamLifecycle.TeamMember member = new TeamLifecycle.TeamMember(
+                agentId, agentType, "in_process", System.currentTimeMillis() / 1000.0);
+        member.model = effectiveModel;
+        member.prompt = effectivePrompt;
+        member.agentType = agentType;
+        member.permissions = new ArrayList<>(def.permissions());
+        member.mode = def.permissionMode() == com.openharness.permissions.PermissionMode.PLAN ? "plan" : "auto";
+
+        // Assign a worktree if the team has one
+        Path teamWorktrees = WorktreeManager.getWorktreesBaseDir().resolve(teamName);
+        if (Files.exists(teamWorktrees)) {
+            Path agentWorktree = WorktreeManager.getAgentWorktreeDir(agentId);
+            member.worktreePath = agentWorktree.toString();
+        }
+
+        teamLifecycle.addMember(teamName, member);
+        System.out.println("Agent spawned: " + agentId);
+        System.out.println("  team: " + teamName);
+        System.out.println("  type: " + agentType);
+        System.out.println("  model: " + effectiveModel);
+        System.out.println("  mode: " + member.mode);
+    }
+
+    public void agentStatus(String teamName, String agentName) {
+        TeamLifecycle.TeamFile team = teamLifecycle.getTeam(teamName);
+        if (team == null) {
+            System.out.println("Team not found: " + teamName);
+            return;
+        }
+
+        for (TeamLifecycle.TeamMember m : team.members.values()) {
+            if (agentName == null || m.name.equals(agentName) || m.agentId.equals(agentName)) {
+                System.out.println("Agent: " + m.name + " (" + m.agentId + ")");
+                System.out.println("  status: " + m.status);
+                System.out.println("  active: " + m.isActive);
+                System.out.println("  mode: " + m.mode);
+                System.out.println("  model: " + m.model);
+                System.out.println("  backend: " + m.backendType);
+                System.out.println("  worktree: " + (m.worktreePath != null ? m.worktreePath : "none"));
+                System.out.println("  pane: " + (m.tmuxPaneId != null ? m.tmuxPaneId : "none"));
+                System.out.println("  permissions: " + m.permissions);
+                System.out.println();
+            }
+        }
+    }
+
+    public void agentKill(String teamName, String agentName) {
+        TeamLifecycle.TeamFile team = teamLifecycle.getTeam(teamName);
+        if (team == null) {
+            System.out.println("Team not found: " + teamName);
+            return;
+        }
+
+        String targetId = null;
+        for (TeamLifecycle.TeamMember m : team.members.values()) {
+            if (m.name.equals(agentName) || m.agentId.equals(agentName)) {
+                targetId = m.agentId;
+                break;
+            }
+        }
+        if (targetId == null) {
+            System.err.println("Agent not found in team " + teamName + ": " + agentName);
+            return;
+        }
+
+        // Clean up worktree
+        TeamLifecycle.TeamMember member = team.members.get(targetId);
+        if (member != null && member.worktreePath != null) {
+            WorktreeManager.destroyWorktree(Path.of(member.worktreePath));
+        }
+
+        // Remove from team
+        teamLifecycle.removeMember(teamName, targetId);
+        System.out.println("Agent killed: " + agentName + " (" + targetId + ") from team " + teamName);
+    }
+
+    public void agentList(String teamName) {
+        if (teamName != null) {
+            teamShow(teamName);
+            return;
+        }
+        // List agents across all teams
+        List<TeamLifecycle.TeamFile> teams = teamLifecycle.listTeams();
+        if (teams.isEmpty()) {
+            System.out.println("No teams found.");
+            return;
+        }
+        for (TeamLifecycle.TeamFile team : teams) {
+            for (TeamLifecycle.TeamMember m : team.members.values()) {
+                System.out.println("  [" + team.name + "] " + m.name + " (" + m.agentId +
+                        ") status=" + m.status + " active=" + m.isActive + " mode=" + m.mode);
+            }
+        }
+    }
+
+    // ==================================================================
+    // swarm status
+    // ==================================================================
+
+    public void swarmStatus() {
+        List<TeamLifecycle.TeamFile> teams = teamLifecycle.listTeams();
+        if (teams.isEmpty()) {
+            System.out.println("No active swarms.");
+            return;
+        }
+
+        int totalAgents = 0;
+        int activeAgents = 0;
+        System.out.println("Swarms: " + teams.size());
+        for (TeamLifecycle.TeamFile team : teams) {
+            int active = 0;
+            for (TeamLifecycle.TeamMember m : team.members.values()) {
+                if (m.isActive) active++;
+            }
+            totalAgents += team.members.size();
+            activeAgents += active;
+            System.out.println("  " + team.name + ": " + active + "/" + team.members.size() + " agents active");
+        }
+        System.out.println("Total: " + activeAgents + "/" + totalAgents + " agents active");
+
+        // Show backend registry status
+        BackendRegistry backendRegistry = BackendRegistry.getInstance();
+        System.out.println("Backends: " + backendRegistry.availableBackends());
+        System.out.println("Default backend: " + backendRegistry.getDefault().type());
+    }
+
     // ==================================================================
     // main entry point
     // ==================================================================
@@ -266,6 +566,13 @@ public class OhmoCLI {
 
         try {
             switch (cmd) {
+                case "run" -> {
+                    String model = extractOption(args, "--model", "-m");
+                    String profile = extractOption(args, "--profile", "-P");
+                    boolean coordinator = !hasFlag(args, "--no-coordinator");
+                    boolean withChannels = hasFlag(args, "--with-channels");
+                    cli.run(model, profile, coordinator, withChannels);
+                }
                 case "init" -> {
                     boolean interactive = !hasFlag(args, "--no-interactive");
                     cli.init(interactive);
@@ -280,6 +587,9 @@ public class OhmoCLI {
                 case "gateway" -> handleGateway(cli, shift(args));
                 case "session" -> handleSession(cli, shift(args));
                 case "group" -> handleGroup(cli, shift(args));
+                case "team" -> handleTeam(cli, shift(args));
+                case "agent" -> handleAgent(cli, shift(args));
+                case "swarm" -> handleSwarm(cli, shift(args));
 
                 // Direct print mode
                 case "-p", "--print" -> {
@@ -381,6 +691,66 @@ public class OhmoCLI {
         else System.err.println("Unknown group subcommand: " + sub);
     }
 
+    private static void handleTeam(OhmoCLI cli, String[] args) {
+        String sub = args.length > 0 ? args[0] : "list";
+        switch (sub) {
+            case "create" -> {
+                String name = extractOption(args, "--name", "-n");
+                String desc = extractOption(args, "--description", "-d");
+                if (name == null) { System.err.println("Usage: ohmo team create --name <name> [--description <desc>]"); return; }
+                cli.teamCreate(name, desc);
+            }
+            case "delete", "rm" -> {
+                String name = extractOption(args, "--name", "-n");
+                if (name == null) { System.err.println("Usage: ohmo team delete --name <name>"); return; }
+                cli.teamDelete(name);
+            }
+            case "show" -> {
+                String name = extractOption(args, "--name", "-n");
+                if (name == null) { System.err.println("Usage: ohmo team show --name <name>"); return; }
+                cli.teamShow(name);
+            }
+            case "list" -> cli.teamList();
+            default -> System.err.println("Unknown team subcommand: " + sub);
+        }
+    }
+
+    private static void handleAgent(OhmoCLI cli, String[] args) {
+        String sub = args.length > 0 ? args[0] : "list";
+        switch (sub) {
+            case "spawn" -> {
+                String team = extractOption(args, "--team", "-t");
+                String type = extractOption(args, "--type");
+                String model = extractOption(args, "--model", "-m");
+                String prompt = extractOption(args, "--prompt", "-p");
+                cli.agentSpawn(team, type, model, prompt);
+            }
+            case "status" -> {
+                String team = extractOption(args, "--team", "-t");
+                String name = extractOption(args, "--name", "-n");
+                if (team == null) { System.err.println("Usage: ohmo agent status --team <name> [--name <agent>]"); return; }
+                cli.agentStatus(team, name);
+            }
+            case "kill" -> {
+                String team = extractOption(args, "--team", "-t");
+                String name = extractOption(args, "--name", "-n");
+                if (team == null || name == null) { System.err.println("Usage: ohmo agent kill --team <name> --name <agent>"); return; }
+                cli.agentKill(team, name);
+            }
+            case "list" -> {
+                String team = extractOption(args, "--team", "-t");
+                cli.agentList(team);
+            }
+            default -> System.err.println("Unknown agent subcommand: " + sub);
+        }
+    }
+
+    private static void handleSwarm(OhmoCLI cli, String[] args) {
+        String sub = args.length > 0 ? args[0] : "status";
+        if ("status".equals(sub)) cli.swarmStatus();
+        else System.err.println("Unknown swarm subcommand: " + sub);
+    }
+
     // ==================================================================
     // Helpers
     // ==================================================================
@@ -415,6 +785,7 @@ public class OhmoCLI {
         System.out.println("Usage: ohmo <command> [options]");
         System.out.println();
         System.out.println("Commands:");
+        System.out.println("  run               Start interactive session (--no-coordinator for single-agent)");
         System.out.println("  init              Initialize the .ohmo workspace");
         System.out.println("  config            Show gateway configuration");
         System.out.println("  doctor            Check workspace and provider readiness");
@@ -432,6 +803,15 @@ public class OhmoCLI {
         System.out.println("  gateway run       Run gateway in foreground");
         System.out.println("  session list      List session snapshots");
         System.out.println("  group list        List managed groups");
+        System.out.println("  team create       Create a new agent team");
+        System.out.println("  team delete       Delete an agent team");
+        System.out.println("  team list         List all teams");
+        System.out.println("  team show         Show team details");
+        System.out.println("  agent spawn       Spawn a new agent in a team");
+        System.out.println("  agent status      Show agent status");
+        System.out.println("  agent kill        Kill and remove an agent");
+        System.out.println("  agent list        List all agents (optionally by team)");
+        System.out.println("  swarm status      Show overall swarm status");
         System.out.println("  -p, --print TEXT  Run a single prompt and print result");
         System.out.println();
         System.out.println("Options:");

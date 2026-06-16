@@ -61,7 +61,74 @@ public class AgentDefinitionsLoader {
     }
 
     private AgentDefinition loadBuiltinAgent(String name) {
-        return null;
+        return switch (name) {
+            case "general-purpose" -> new AgentDefinition(
+                    "general-purpose", "General-purpose agent for research and implementation tasks",
+                    "You are a capable software engineering agent. Complete the assigned task thoroughly.",
+                    List.of("bash", "file_read", "file_edit", "file_write", "glob", "grep",
+                            "web_fetch", "web_search", "task_create", "task_get", "task_list",
+                            "task_output", "skill"),
+                    List.of(), null, null, null, null,
+                    List.of(), List.of(), List.of(), null, false, null, null, null,
+                    List.of(), false, null, "general-purpose", "builtin", "general-purpose.md", null);
+
+            case "Explore" -> new AgentDefinition(
+                    "Explore", "Fast agent specialized for exploring codebases",
+                    "You are a code exploration agent. Find files, search code, and answer questions about the codebase. Do not modify files.",
+                    List.of("glob", "grep", "file_read", "web_fetch", "web_search"),
+                    List.of("file_edit", "file_write", "bash"),
+                    null, null, null, null,
+                    List.of(), List.of(), List.of(), null, false, null, null, null,
+                    List.of(), false, null, "Explore", "builtin", "Explore.md", null);
+
+            case "Plan" -> new AgentDefinition(
+                    "Plan", "Software architect agent for designing implementation plans",
+                    "You are a software architect. Design implementation plans, identify critical files, and consider architectural trade-offs. Do not modify files.",
+                    List.of("glob", "grep", "file_read", "web_fetch", "web_search",
+                            "enter_plan_mode", "exit_plan_mode"),
+                    List.of("file_edit", "file_write", "bash"),
+                    null, null, null, null,
+                    List.of(), List.of(), List.of(), null, false, null, null, null,
+                    List.of(), false, null, "Plan", "builtin", "Plan.md", null);
+
+            case "worker" -> new AgentDefinition(
+                    "worker", "Worker agent that executes autonomous tasks delegated by the coordinator",
+                    null,
+                    List.of("bash", "file_read", "file_edit", "file_write", "glob", "grep",
+                            "web_fetch", "web_search", "task_create", "task_get", "task_list",
+                            "task_output", "skill"),
+                    List.of(), null, null, null, 200,
+                    List.of(), List.of(), List.of(), null, true, null, null, null,
+                    List.of(), false, null, "worker", "builtin", "worker.md", null);
+
+            case "verification" -> new AgentDefinition(
+                    "verification", "Verification agent that tests and validates code changes",
+                    "You are a verification agent. Prove code works by running tests, checking types, and trying edge cases. Be skeptical - if something looks off, dig in. Never rubber-stamp.",
+                    List.of("bash", "file_read", "glob", "grep"),
+                    List.of("file_edit", "file_write"),
+                    null, null, null, null,
+                    List.of(), List.of(), List.of(), null, false, null, null, null,
+                    List.of(), false, null, "verification", "builtin", "verification.md", null);
+
+            case "statusline-setup" -> new AgentDefinition(
+                    "statusline-setup", "Configure the user's Claude Code status line setting",
+                    "You configure the Claude Code status line. Read and edit the status line configuration.",
+                    List.of("file_read", "file_edit"), List.of(),
+                    null, null, null, null,
+                    List.of(), List.of(), List.of(), null, false, null, null, null,
+                    List.of(), false, null, "statusline-setup", "builtin", "statusline-setup.md", null);
+
+            case "claude-code-guide" -> new AgentDefinition(
+                    "claude-code-guide", "Answer questions about Claude Code CLI features and usage",
+                    "You answer questions about Claude Code features, hooks, slash commands, MCP servers, settings, and IDE integrations.",
+                    List.of("web_fetch", "web_search", "file_read", "glob", "grep"),
+                    List.of("file_edit", "file_write", "bash"),
+                    null, null, null, null,
+                    List.of(), List.of(), List.of(), null, false, null, null, null,
+                    List.of(), false, null, "claude-code-guide", "builtin", "claude-code-guide.md", null);
+
+            default -> null;
+        };
     }
 
     void loadFromDir(Map<String, AgentDefinition> agents, Path dir) {
