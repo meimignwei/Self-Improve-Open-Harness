@@ -4,39 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9ddf2644-fc40-48f7-bbe2-450469ebe964" name="Changes" comment="mvp版本">
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/java-技术方案/15-mvp版本对比原版.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-common/src/main/java/com/openharness/common/TeamRegistry.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-common/src/main/java/com/openharness/common/TeamRegistry.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-extensions/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-extensions/pom.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/bridge/BridgeSessionManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/bridge/BridgeSessionManager.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/bridge/WorkSecret.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/bridge/WorkSecret.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/coordinator/CoordinatorMode.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/coordinator/CoordinatorMode.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/swarm/BackendRegistry.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/swarm/BackendRegistry.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/swarm/FileMailbox.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/swarm/FileMailbox.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/swarm/InProcessBackend.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/swarm/InProcessBackend.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/swarm/PermissionSyncProtocol.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/swarm/PermissionSyncProtocol.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/swarm/SpawnUtils.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/swarm/SpawnUtils.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/swarm/SubprocessBackend.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/swarm/SubprocessBackend.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/swarm/TeamLifecycle.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/swarm/TeamLifecycle.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/swarm/TeammateBackend.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/swarm/TeammateBackend.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/swarm/TeammateSpec.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/swarm/TeammateSpec.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/swarm/TmuxBackend.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/swarm/TmuxBackend.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/swarm/WorktreeManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/swarm/WorktreeManager.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-ohmo/src/main/java/com/openharness/ohmo/GatewayConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-ohmo/src/main/java/com/openharness/ohmo/GatewayConfig.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-ohmo/src/main/java/com/openharness/ohmo/OhmoCLI.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-ohmo/src/main/java/com/openharness/ohmo/OhmoCLI.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-ohmo/src/main/java/com/openharness/ohmo/OhmoGatewayBridge.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-ohmo/src/main/java/com/openharness/ohmo/OhmoGatewayBridge.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-ohmo/src/main/java/com/openharness/ohmo/OhmoGatewayService.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-ohmo/src/main/java/com/openharness/ohmo/OhmoGatewayService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-ohmo/src/main/java/com/openharness/ohmo/OhmoSessionBackend.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-ohmo/src/main/java/com/openharness/ohmo/OhmoSessionBackend.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-ohmo/src/main/java/com/openharness/ohmo/OhmoSessionRuntimePool.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-ohmo/src/main/java/com/openharness/ohmo/OhmoSessionRuntimePool.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-ohmo/src/main/java/com/openharness/ohmo/RuntimeBundle.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-ohmo/src/main/java/com/openharness/ohmo/RuntimeBundle.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-ohmo/src/main/java/com/openharness/ohmo/WorkspaceManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-ohmo/src/main/java/com/openharness/ohmo/WorkspaceManager.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-tools/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-tools/pom.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-tools/src/main/java/com/openharness/tools/AgentTool.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-tools/src/main/java/com/openharness/tools/AgentTool.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-tools/src/main/java/com/openharness/tools/SendMessageTool.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-tools/src/main/java/com/openharness/tools/SendMessageTool.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/java-openharness/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/pom.xml" afterDir="false" />
-    </list>
+    <list default="true" id="9ddf2644-fc40-48f7-bbe2-450469ebe964" name="Changes" comment="Add 44 unit tests for multi-agent subsystems + fix CHM null value bug&#10;&#10;Tests cover:&#10;- Swarm: TeammateSpec, SpawnResult, FileMailbox, InProcessBackend,&#10;  PermissionSyncProtocol&#10;- Coordinator: AgentDefinition, AgentDefinitionsLoader&#10;- Bridge: WorkSecret (encode/decode/buildSdkUrl)&#10;- Ohmo: GatewayConfig, WorkspaceManager, RuntimeBundle,&#10;  OhmoSessionBackend, GroupRegistry, OhmoSessionRuntimePool,&#10;  OhmoGatewayBridge, MessageBus&#10;- Tools: AgentTool&#10;&#10;Fixed ConcurrentHashMap.put(null) NPE in OhmoSessionRuntimePool — CHM&#10;does not allow null values. Replaced null placeholder with empty RuntimeBundle.&#10;&#10;Co-Authored-By: Claude Opus 4.7 &lt;noreply@anthropic.com&gt;" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -181,7 +149,15 @@
       <option name="project" value="LOCAL" />
       <updated>1781312269743</updated>
     </task>
-    <option name="localTasksCounter" value="10" />
+    <task id="LOCAL-00010" summary="Add 44 unit tests for multi-agent subsystems + fix CHM null value bug&#10;&#10;Tests cover:&#10;- Swarm: TeammateSpec, SpawnResult, FileMailbox, InProcessBackend,&#10;  PermissionSyncProtocol&#10;- Coordinator: AgentDefinition, AgentDefinitionsLoader&#10;- Bridge: WorkSecret (encode/decode/buildSdkUrl)&#10;- Ohmo: GatewayConfig, WorkspaceManager, RuntimeBundle,&#10;  OhmoSessionBackend, GroupRegistry, OhmoSessionRuntimePool,&#10;  OhmoGatewayBridge, MessageBus&#10;- Tools: AgentTool&#10;&#10;Fixed ConcurrentHashMap.put(null) NPE in OhmoSessionRuntimePool — CHM&#10;does not allow null values. Replaced null placeholder with empty RuntimeBundle.&#10;&#10;Co-Authored-By: Claude Opus 4.7 &lt;noreply@anthropic.com&gt;">
+      <option name="closed" value="true" />
+      <created>1781592959825</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1781592959825</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -198,6 +174,7 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="重构" />
     <MESSAGE value="mvp版本" />
-    <option name="LAST_COMMIT_MESSAGE" value="mvp版本" />
+    <MESSAGE value="Add 44 unit tests for multi-agent subsystems + fix CHM null value bug&#10;&#10;Tests cover:&#10;- Swarm: TeammateSpec, SpawnResult, FileMailbox, InProcessBackend,&#10;  PermissionSyncProtocol&#10;- Coordinator: AgentDefinition, AgentDefinitionsLoader&#10;- Bridge: WorkSecret (encode/decode/buildSdkUrl)&#10;- Ohmo: GatewayConfig, WorkspaceManager, RuntimeBundle,&#10;  OhmoSessionBackend, GroupRegistry, OhmoSessionRuntimePool,&#10;  OhmoGatewayBridge, MessageBus&#10;- Tools: AgentTool&#10;&#10;Fixed ConcurrentHashMap.put(null) NPE in OhmoSessionRuntimePool — CHM&#10;does not allow null values. Replaced null placeholder with empty RuntimeBundle.&#10;&#10;Co-Authored-By: Claude Opus 4.7 &lt;noreply@anthropic.com&gt;" />
+    <option name="LAST_COMMIT_MESSAGE" value="Add 44 unit tests for multi-agent subsystems + fix CHM null value bug&#10;&#10;Tests cover:&#10;- Swarm: TeammateSpec, SpawnResult, FileMailbox, InProcessBackend,&#10;  PermissionSyncProtocol&#10;- Coordinator: AgentDefinition, AgentDefinitionsLoader&#10;- Bridge: WorkSecret (encode/decode/buildSdkUrl)&#10;- Ohmo: GatewayConfig, WorkspaceManager, RuntimeBundle,&#10;  OhmoSessionBackend, GroupRegistry, OhmoSessionRuntimePool,&#10;  OhmoGatewayBridge, MessageBus&#10;- Tools: AgentTool&#10;&#10;Fixed ConcurrentHashMap.put(null) NPE in OhmoSessionRuntimePool — CHM&#10;does not allow null values. Replaced null placeholder with empty RuntimeBundle.&#10;&#10;Co-Authored-By: Claude Opus 4.7 &lt;noreply@anthropic.com&gt;" />
   </component>
 </project>
