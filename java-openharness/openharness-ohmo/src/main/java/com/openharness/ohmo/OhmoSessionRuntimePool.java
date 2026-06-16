@@ -55,7 +55,7 @@ public class OhmoSessionRuntimePool {
         this.maxTurns = maxTurns;
         this.sessionBackend = new OhmoSessionBackend(workspaceRoot);
         this.groupRegistry = new GroupRegistry(workspaceRoot);
-        this.bundles.put("_gateway_config", null); // placeholder
+        this.bundles.put("_gateway_config", new RuntimeBundle("_gateway_config", Path.of(cwd), providerProfile, workspaceRoot));
     }
 
     public int activeSessions() {

@@ -1,4 +1,6 @@
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/test/java/com/openharness/extensions/bridge/WorkSecretTest.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/test/java/com/openharness/extensions/channels/BaseChannelTest.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/test/java/com/openharness/extensions/coordinator/AgentDefinitionTest.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/test/java/com/openharness/extensions/memory/MemoryEntryTest.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/test/java/com/openharness/extensions/memory/MemoryFileStoreTest.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/test/java/com/openharness/extensions/memory/MemoryIntegrationTest.java
@@ -7,3 +9,8 @@
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/test/java/com/openharness/extensions/memory/MemorySignatureTest.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/test/java/com/openharness/extensions/memory/MemoryTypeTest.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/test/java/com/openharness/extensions/skills/SkillLoaderBundledTest.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/test/java/com/openharness/extensions/swarm/FileMailboxTest.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/test/java/com/openharness/extensions/swarm/InProcessBackendTest.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/test/java/com/openharness/extensions/swarm/PermissionSyncProtocolTest.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/test/java/com/openharness/extensions/swarm/SpawnResultTest.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/test/java/com/openharness/extensions/swarm/TeammateSpecTest.java

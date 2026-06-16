@@ -1,6 +1,7 @@
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-ohmo/src/main/java/com/openharness/ohmo/ChannelManager.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-ohmo/src/main/java/com/openharness/ohmo/GatewayConfig.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-ohmo/src/main/java/com/openharness/ohmo/GatewayState.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-ohmo/src/main/java/com/openharness/ohmo/GroupRegistry.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-ohmo/src/main/java/com/openharness/ohmo/MessageBus.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-ohmo/src/main/java/com/openharness/ohmo/OhmoCLI.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-ohmo/src/main/java/com/openharness/ohmo/OhmoGatewayBridge.java

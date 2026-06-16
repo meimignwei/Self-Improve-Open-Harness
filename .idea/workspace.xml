@@ -5,7 +5,37 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="9ddf2644-fc40-48f7-bbe2-450469ebe964" name="Changes" comment="mvp版本">
+      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/java-技术方案/15-mvp版本对比原版.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-common/src/main/java/com/openharness/common/TeamRegistry.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-common/src/main/java/com/openharness/common/TeamRegistry.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-extensions/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-extensions/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/bridge/BridgeSessionManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/bridge/BridgeSessionManager.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/bridge/WorkSecret.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/bridge/WorkSecret.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/coordinator/CoordinatorMode.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/coordinator/CoordinatorMode.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/swarm/BackendRegistry.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/swarm/BackendRegistry.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/swarm/FileMailbox.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/swarm/FileMailbox.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/swarm/InProcessBackend.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/swarm/InProcessBackend.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/swarm/PermissionSyncProtocol.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/swarm/PermissionSyncProtocol.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/swarm/SpawnUtils.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/swarm/SpawnUtils.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/swarm/SubprocessBackend.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/swarm/SubprocessBackend.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/swarm/TeamLifecycle.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/swarm/TeamLifecycle.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/swarm/TeammateBackend.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/swarm/TeammateBackend.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/swarm/TeammateSpec.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/swarm/TeammateSpec.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/swarm/TmuxBackend.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/swarm/TmuxBackend.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/swarm/WorktreeManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/swarm/WorktreeManager.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-ohmo/src/main/java/com/openharness/ohmo/GatewayConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-ohmo/src/main/java/com/openharness/ohmo/GatewayConfig.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-ohmo/src/main/java/com/openharness/ohmo/OhmoCLI.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-ohmo/src/main/java/com/openharness/ohmo/OhmoCLI.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-ohmo/src/main/java/com/openharness/ohmo/OhmoGatewayBridge.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-ohmo/src/main/java/com/openharness/ohmo/OhmoGatewayBridge.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-ohmo/src/main/java/com/openharness/ohmo/OhmoGatewayService.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-ohmo/src/main/java/com/openharness/ohmo/OhmoGatewayService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-ohmo/src/main/java/com/openharness/ohmo/OhmoSessionBackend.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-ohmo/src/main/java/com/openharness/ohmo/OhmoSessionBackend.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-ohmo/src/main/java/com/openharness/ohmo/OhmoSessionRuntimePool.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-ohmo/src/main/java/com/openharness/ohmo/OhmoSessionRuntimePool.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-ohmo/src/main/java/com/openharness/ohmo/RuntimeBundle.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-ohmo/src/main/java/com/openharness/ohmo/RuntimeBundle.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-ohmo/src/main/java/com/openharness/ohmo/WorkspaceManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-ohmo/src/main/java/com/openharness/ohmo/WorkspaceManager.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-tools/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-tools/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-tools/src/main/java/com/openharness/tools/AgentTool.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-tools/src/main/java/com/openharness/tools/AgentTool.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/java-openharness/openharness-tools/src/main/java/com/openharness/tools/SendMessageTool.java" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/openharness-tools/src/main/java/com/openharness/tools/SendMessageTool.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/java-openharness/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/java-openharness/pom.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -37,10 +67,11 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
     "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "git-widget-placeholder": "main",
+    "git-widget-placeholder": "feature/multi-agent-replication",
     "kotlin-language-version-configured": "true",
     "last_opened_file_path": "/Users/mmw/IdeaProjects/self-evolution-claude-code"
   }
@@ -142,8 +173,27 @@
       <option name="project" value="LOCAL" />
       <updated>1781274879082</updated>
     </task>
-    <option name="localTasksCounter" value="9" />
+    <task id="LOCAL-00009" summary="mvp版本">
+      <option name="closed" value="true" />
+      <created>1781312269743</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1781312269743</updated>
+    </task>
+    <option name="localTasksCounter" value="10" />
     <servers />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="重构" />
