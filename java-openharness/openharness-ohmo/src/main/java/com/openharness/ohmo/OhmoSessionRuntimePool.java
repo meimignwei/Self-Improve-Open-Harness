@@ -163,6 +163,19 @@ public class OhmoSessionRuntimePool {
                     Map.of("_session_key", sessionKey, "_command", true)));
             return result;
         }
+        if (lowered.startsWith("/compact")) {
+            String result = handleCompactCommand(bundle);
+            onUpdate.accept(new GatewayStreamUpdate("final", result,
+                    Map.of("_session_key", sessionKey, "_command", true)));
+            return result;
+        }
+        if (lowered.startsWith("/memory")) {
+            String args = commandPrompt.substring("/memory".length()).strip();
+            String result = handleMemoryCommand(args, bundle);
+            onUpdate.accept(new GatewayStreamUpdate("final", result,
+                    Map.of("_session_key", sessionKey, "_command", true)));
+            return result;
+        }
         return null;
     }
 
@@ -185,6 +198,70 @@ public class OhmoSessionRuntimePool {
             return "ohmo gateway model: " + (model != null ? model : "default");
         }
         return "ohmo gateway model set to " + args.strip() + ". Refreshing.";
+    }
+
+    private String handleCompactCommand(RuntimeBundle bundle) {
+        if (bundle.engine() != null) {
+            return bundle.engine().compact();
+        }
+        return "Compaction not supported (no engine wired).";
+    }
+
+    private String handleMemoryCommand(String args, RuntimeBundle bundle) {
+        Path memoryDir = workspaceRoot.resolve("memory");
+        OhmoMemoryBackend ohmoMemBackend = new OhmoMemoryBackend(memoryDir);
+        if (!java.nio.file.Files.exists(memoryDir)) {
+            return "No memory directory found at " + memoryDir;
+        }
+        com.openharness.config.MemorySettings memSettings = new com.openharness.config.MemorySettings();
+        com.openharness.extensions.memory.MemoryManager mgr =
+                new com.openharness.extensions.memory.MemoryManager(memoryDir, memSettings);
+
+        String[] parts = args.split("\\s+", 2);
+        String sub = parts.length > 0 ? parts[0].strip() : "";
+        String subArgs = parts.length > 1 ? parts[1].strip() : "";
+
+        return switch (sub) {
+            case "list", "ls", "" -> {
+                var all = mgr.listAll();
+                if (all.isEmpty()) {
+                    yield "No memories stored.";
+                }
+                StringBuilder sb = new StringBuilder("Memories:\n");
+                for (var m : all) {
+                    sb.append("- [").append(m.header().type().name().toLowerCase())
+                            .append("] ").append(m.header().name())
+                            .append(" (importance:").append(m.header().importance()).append(")\n");
+                }
+                yield sb.toString().strip();
+            }
+            case "search", "find" -> {
+                if (subArgs.isBlank()) {
+                    yield "Usage: /memory search <query>";
+                }
+                var results = mgr.search(subArgs, 5);
+                if (results.isEmpty()) {
+                    yield "No matching memories for: " + subArgs;
+                }
+                StringBuilder sb = new StringBuilder("Search results:\n");
+                for (var s : results) {
+                    sb.append("- [").append(s.memory().header().type().name().toLowerCase())
+                            .append("] ").append(s.memory().header().name())
+                            .append(" (score:").append(String.format("%.2f", s.score())).append(")\n");
+                }
+                yield sb.toString().strip();
+            }
+            case "prune" -> {
+                int pruned = mgr.pruneExpired();
+                yield "Pruned " + pruned + " expired memories.";
+            }
+            case "count" -> {
+                var all = mgr.listAll();
+                yield "Total memories: " + all.size();
+            }
+            default -> "Unknown /memory subcommand: " + sub
+                    + ". Try: list, search <query>, prune, count";
+        };
     }
 
     // ------------------------------------------------------------------
@@ -342,7 +419,7 @@ public class OhmoSessionRuntimePool {
 
     private String buildRuntimeSystemPrompt(RuntimeBundle bundle, String latestUserPrompt) {
         OhmoSystemPromptBuilder builder = new OhmoSystemPromptBuilder();
-        return builder.build(bundle.cwd(), bundle.workspaceRoot());
+        return builder.build(bundle.cwd(), bundle.workspaceRoot(), latestUserPrompt);
     }
 
     // ------------------------------------------------------------------

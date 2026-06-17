@@ -54,6 +54,23 @@ public class ToolCarryover {
         save();
     }
 
+    public int size() {
+        return items.size();
+    }
+
+    /** Remove oldest items, keeping at most maxKeep. */
+    public void compact(int maxKeep) {
+        if (items.size() <= maxKeep) return;
+        while (items.size() > maxKeep) {
+            items.removeFirst();
+        }
+        save();
+    }
+
+    public void compact() {
+        compact(MAX_CARRYOVER_ITEMS / 2);
+    }
+
     private void add(String toolName, String content) {
         items.removeIf(i -> i.toolName().equals(toolName));
         items.add(new CarryoverItem(toolName, content, Instant.now().toString()));

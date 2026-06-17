@@ -65,6 +65,90 @@ public class CompactionService {
     public record SessionMemory(String goal, String nextStep, String verifiedWork,
                                  java.time.Instant timestamp, int messageCount) {}
 
+    // ------------------------------------------------------------------
+    // Level 3: LLM-based narrative summarization
+    // ------------------------------------------------------------------
+
+    private static final String LLM_COMPACT_SYSTEM_PROMPT = """
+            You are a conversation summarizer. Produce a concise, structured summary \
+            of the conversation below. Include: (1) the user's main goal, (2) key \
+            decisions made, (3) important findings or files created/modified, \
+            (4) current state / next steps. Use bullet points. Be dense — every word counts.""";
+
+    /**
+     * Level 3: LLM-based narrative summarization.
+     * Calls the LLM to produce a concise summary, then replaces older messages
+     * with the summary, keeping the most recent turns intact.
+     *
+     * @param messages     conversation to compact
+     * @param llmCaller    function (systemPrompt, userPrompt) -> LLM text response
+     * @param keepRecent   number of recent messages to preserve
+     * @return compacted conversation with summary prepended
+     */
+    public List<ConversationMessage> llmCompact(
+            List<ConversationMessage> messages,
+            java.util.function.BiFunction<String, String, String> llmCaller,
+            int keepRecent) {
+
+        if (messages == null || messages.size() <= keepRecent + 2) {
+            return messages;
+        }
+
+        String userPrompt = buildSummaryUserPrompt(messages);
+
+        String summary;
+        try {
+            summary = llmCaller.apply(LLM_COMPACT_SYSTEM_PROMPT, userPrompt);
+            if (summary == null || summary.isBlank()) {
+                return messages;
+            }
+        } catch (Exception e) {
+            return messages;
+        }
+
+        List<ConversationMessage> compacted = new ArrayList<>();
+        compacted.add(new ConversationMessage(
+                Role.USER,
+                List.of(new ContentBlock.TextBlock(
+                        "[Conversation Summary]\n" + summary.strip()))));
+
+        int start = Math.max(0, messages.size() - keepRecent);
+        for (int i = start; i < messages.size(); i++) {
+            compacted.add(messages.get(i));
+        }
+
+        return compacted;
+    }
+
+    public List<ConversationMessage> llmCompact(
+            List<ConversationMessage> messages,
+            java.util.function.BiFunction<String, String, String> llmCaller) {
+        return llmCompact(messages, llmCaller, 4);
+    }
+
+    private String buildSummaryUserPrompt(List<ConversationMessage> messages) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Summarize this conversation:\n\n");
+        for (ConversationMessage msg : messages) {
+            sb.append("[").append(msg.role().name()).append("]: ");
+            for (ContentBlock block : msg.content()) {
+                if (block instanceof ContentBlock.TextBlock tb) {
+                    sb.append(truncate(tb.text(), 1000));
+                } else if (block instanceof ContentBlock.ToolUseBlock tub) {
+                    sb.append("[tool:").append(tub.name()).append("]");
+                } else if (block instanceof ContentBlock.ToolResultBlock trb) {
+                    sb.append("[result:").append(truncate(trb.content(), 200)).append("]");
+                }
+            }
+            sb.append("\n");
+        }
+        return sb.toString();
+    }
+
+    // ------------------------------------------------------------------
+    // Helpers
+    // ------------------------------------------------------------------
+
     private String extractGoal(List<ConversationMessage> messages) {
         for (ConversationMessage msg : messages) {
             for (ContentBlock block : msg.content()) {
@@ -102,7 +186,7 @@ public class CompactionService {
         return String.join(", ", toolResults);
     }
 
-    private String truncate(String s, int maxLen) {
+    private static String truncate(String s, int maxLen) {
         if (s == null) return "";
         return s.length() <= maxLen ? s : s.substring(0, maxLen);
     }

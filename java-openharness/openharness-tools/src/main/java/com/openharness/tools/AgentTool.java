@@ -10,6 +10,8 @@ import com.openharness.engine.tool.BaseTool;
 import com.openharness.engine.tool.ToolExecutionContext;
 import com.openharness.extensions.coordinator.AgentDefinition;
 import com.openharness.extensions.coordinator.AgentDefinitionsLoader;
+import com.openharness.extensions.memory.AgentMemoryContext;
+import com.openharness.extensions.memory.MemoryManager;
 import com.openharness.extensions.swarm.BackendRegistry;
 import com.openharness.extensions.swarm.InProcessBackend;
 import com.openharness.extensions.swarm.SpawnResult;
@@ -32,6 +34,7 @@ public class AgentTool extends BaseTool<AgentTool.Input> {
 
     private final AgentRuntime agentRuntime;
     private final AgentDefinitionsLoader definitionsLoader;
+    private volatile MemoryManager memoryManager;
 
     public AgentTool(AgentRuntime agentRuntime) {
         super("agent", "Spawn a local background agent task.", Input.class);
@@ -43,6 +46,11 @@ public class AgentTool extends BaseTool<AgentTool.Input> {
         super("agent", "Spawn a local background agent task.", Input.class);
         this.agentRuntime = agentRuntime;
         this.definitionsLoader = definitionsLoader;
+    }
+
+    /** Set a MemoryManager to enable memory context injection for sub-agents. */
+    public void setMemoryManager(MemoryManager mgr) {
+        this.memoryManager = mgr;
     }
 
     @Override
@@ -80,6 +88,17 @@ public class AgentTool extends BaseTool<AgentTool.Input> {
 
         List<String> permissions = agentDef != null ? agentDef.permissions() : List.of();
 
+        // Build system prompt with memory context for sub-agents
+        String systemPrompt = agentDef != null ? agentDef.systemPrompt() : null;
+        if (memoryManager != null) {
+            AgentMemoryContext memCtx = new AgentMemoryContext(memoryManager);
+            String memPrompt = memCtx.buildPrompt(
+                    arguments.subagentType() != null ? arguments.subagentType() : "agent", prompt);
+            if (!memPrompt.isEmpty()) {
+                systemPrompt = (systemPrompt != null ? systemPrompt + "\n\n" : "") + memPrompt;
+            }
+        }
+
         TeammateSpec config = TeammateSpec.builder()
                 .name(agentName)
                 .team(team)
@@ -88,7 +107,7 @@ public class AgentTool extends BaseTool<AgentTool.Input> {
                 .parentSessionId("main")
                 .model(model)
                 .command(arguments.command())
-                .systemPrompt(agentDef != null ? agentDef.systemPrompt() : null)
+                .systemPrompt(systemPrompt)
                 .permissions(permissions)
                 .taskType(mode)
                 .build();

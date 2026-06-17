@@ -26,6 +26,7 @@ public class InProcessBackend implements TeammateBackend {
     private static final Logger logger = LoggerFactory.getLogger(InProcessBackend.class);
 
     private volatile AgentRuntime agentRuntime;
+    private volatile com.openharness.extensions.memory.MemoryManager memoryManager;
     private final Map<String, TeammateEntry> active = new ConcurrentHashMap<>();
 
     // ThreadLocal for per-teammate context isolation (Java equivalent of Python ContextVar)
@@ -48,6 +49,10 @@ public class InProcessBackend implements TeammateBackend {
      */
     public AgentRuntime getAgentRuntime() {
         return agentRuntime;
+    }
+
+    public void setMemoryManager(com.openharness.extensions.memory.MemoryManager mgr) {
+        this.memoryManager = mgr;
     }
 
     // ------------------------------------------------------------------
@@ -269,6 +274,17 @@ public class InProcessBackend implements TeammateBackend {
         int turnCount = 0;
         StringBuilder finalText = new StringBuilder();
 
+        // Build memory-enriched system prompt
+        String systemPrompt = config.systemPrompt();
+        if (memoryManager != null) {
+            com.openharness.extensions.memory.AgentMemoryContext memCtx =
+                    new com.openharness.extensions.memory.AgentMemoryContext(memoryManager);
+            String memPrompt = memCtx.buildPrompt(config.name(), config.prompt());
+            if (!memPrompt.isEmpty()) {
+                systemPrompt = (systemPrompt != null ? systemPrompt + "\n\n" : "") + memPrompt;
+            }
+        }
+
         var queryMessages = java.util.List.of(
                 new com.openharness.common.ConversationMessage(
                         com.openharness.common.Role.USER,
@@ -277,7 +293,8 @@ public class InProcessBackend implements TeammateBackend {
 
         var opts = com.openharness.common.QueryOptions.defaults()
                 .withModel(config.model() != null ? config.model() : "claude-sonnet-4-6")
-                .withMaxTurns(200);
+                .withMaxTurns(200)
+                .withSystemPrompt(systemPrompt);
 
         // Use worker tools when running as a coordinator worker
         if (CoordinatorMode.isEnabled()) {

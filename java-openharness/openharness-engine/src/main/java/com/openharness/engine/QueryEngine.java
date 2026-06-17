@@ -31,6 +31,20 @@ public class QueryEngine implements AgentRuntime {
     private final AutoCompactState autoCompactState;
     private final ToolCarryover toolCarryover;
     private final java.util.function.BiFunction<String, String, Boolean> confirmCallback;
+    /** Callback invoked after each turn for auto memory extraction. */
+    private final java.util.function.Consumer<List<ConversationMessage>> afterTurnCallback;
+    /** Compaction function: (messages -> compactedMessages), may use LLM. */
+    private final java.util.function.Function<List<ConversationMessage>, List<ConversationMessage>> compactFn;
+    /** Callback to prune expired memories. */
+    private final Runnable memoryPruner;
+    /** Callback invoked at end of executeLoop for session checkpoint (Level 2 compaction). */
+    private final java.util.function.Consumer<List<ConversationMessage>> sessionEndCallback;
+    /** Tracks how many times auto-compaction has fired in the current loop. */
+    private int compactCount = 0;
+    /** Trigger LLM compact every N micro-compactions. */
+    private static final int LLM_COMPACT_INTERVAL = 3;
+    /** Trigger LLM compact when conversation exceeds this many messages. */
+    private static final int LLM_COMPACT_MESSAGE_THRESHOLD = 30;
 
     public QueryEngine(StreamingApiClient apiClient, ToolRegistry toolRegistry,
                        PermissionChecker permissionChecker) {
@@ -47,6 +61,28 @@ public class QueryEngine implements AgentRuntime {
                        PermissionChecker permissionChecker, CostTracker costTracker,
                        AutoCompactState autoCompactState, ToolCarryover toolCarryover,
                        java.util.function.BiFunction<String, String, Boolean> confirmCallback) {
+        this(apiClient, toolRegistry, permissionChecker, costTracker, autoCompactState,
+                toolCarryover, confirmCallback, null, null, null, null);
+    }
+
+    public QueryEngine(StreamingApiClient apiClient, ToolRegistry toolRegistry,
+                       PermissionChecker permissionChecker, CostTracker costTracker,
+                       AutoCompactState autoCompactState, ToolCarryover toolCarryover,
+                       java.util.function.BiFunction<String, String, Boolean> confirmCallback,
+                       java.util.function.Consumer<List<ConversationMessage>> afterTurnCallback,
+                       java.util.function.Function<List<ConversationMessage>, List<ConversationMessage>> compactFn) {
+        this(apiClient, toolRegistry, permissionChecker, costTracker, autoCompactState,
+                toolCarryover, confirmCallback, afterTurnCallback, compactFn, null, null);
+    }
+
+    public QueryEngine(StreamingApiClient apiClient, ToolRegistry toolRegistry,
+                       PermissionChecker permissionChecker, CostTracker costTracker,
+                       AutoCompactState autoCompactState, ToolCarryover toolCarryover,
+                       java.util.function.BiFunction<String, String, Boolean> confirmCallback,
+                       java.util.function.Consumer<List<ConversationMessage>> afterTurnCallback,
+                       java.util.function.Function<List<ConversationMessage>, List<ConversationMessage>> compactFn,
+                       Runnable memoryPruner,
+                       java.util.function.Consumer<List<ConversationMessage>> sessionEndCallback) {
         this.apiClient = apiClient;
         this.toolRegistry = toolRegistry;
         this.permissionChecker = permissionChecker;
@@ -54,6 +90,10 @@ public class QueryEngine implements AgentRuntime {
         this.autoCompactState = autoCompactState;
         this.toolCarryover = toolCarryover;
         this.confirmCallback = confirmCallback;
+        this.afterTurnCallback = afterTurnCallback;
+        this.compactFn = compactFn;
+        this.memoryPruner = memoryPruner;
+        this.sessionEndCallback = sessionEndCallback;
     }
 
     @Override
@@ -71,6 +111,44 @@ public class QueryEngine implements AgentRuntime {
             }
         });
         return publisher;
+    }
+
+    @Override
+    public String compact() {
+        StringBuilder result = new StringBuilder();
+        int actions = 0;
+
+        // Compact tool carryover
+        if (toolCarryover != null) {
+            int before = toolCarryover.size();
+            toolCarryover.compact();
+            int after = toolCarryover.size();
+            if (before != after) {
+                result.append("Tool carryover: ").append(before)
+                        .append(" -> ").append(after).append(" items. ");
+                actions++;
+            }
+        }
+
+        // Prune expired memories
+        if (memoryPruner != null) {
+            try {
+                memoryPruner.run();
+                result.append("Memories pruned. ");
+                actions++;
+            } catch (Exception e) {
+                // best-effort
+            }
+        }
+
+        if (autoCompactState != null) {
+            autoCompactState.reset();
+            result.append("Compaction threshold reset. ");
+            actions++;
+        }
+
+        return actions > 0 ? result.toString().strip()
+                : "Nothing to compact.";
     }
 
     private void executeLoop(List<ConversationMessage> messages, QueryOptions options,
@@ -112,8 +190,26 @@ public class QueryEngine implements AgentRuntime {
             // Auto-compaction check
             if (autoCompactState != null && autoCompactState.shouldCompact(result.usage())) {
                 conversation = autoCompactState.compact(conversation);
+                compactCount++;
                 publisher.submit(new StreamEvent.StatusEvent(
-                        "Auto-compaction triggered", StreamEvent.StatusLevel.INFO));
+                        "Auto-compaction triggered (Level 1)", StreamEvent.StatusLevel.INFO));
+
+                // Level 3: LLM compaction every N micro-compactions or when conversation is large
+                if (compactFn != null
+                        && (compactCount % LLM_COMPACT_INTERVAL == 0
+                            || conversation.size() > LLM_COMPACT_MESSAGE_THRESHOLD)) {
+                    try {
+                        List<ConversationMessage> compacted = compactFn.apply(conversation);
+                        if (compacted.size() < conversation.size()) {
+                            conversation = compacted;
+                            publisher.submit(new StreamEvent.StatusEvent(
+                                    "LLM compaction complete — context summarized (Level 3)",
+                                    StreamEvent.StatusLevel.INFO));
+                        }
+                    } catch (Exception e) {
+                        // LLM compaction failed, continue with micro-compacted conversation
+                    }
+                }
             }
 
             List<ContentBlock> responseBlocks = result.blocks();
@@ -128,6 +224,7 @@ public class QueryEngine implements AgentRuntime {
 
             if (toolUses.isEmpty()) {
                 publisher.submit(new StreamEvent.AssistantTurnComplete(result.usage()));
+                saveSessionCheckpoint(conversation);
                 return;
             }
 
@@ -138,13 +235,27 @@ public class QueryEngine implements AgentRuntime {
             List<ContentBlock> toolResults = executeTools(toolUses, cwd, publisher);
             conversation.add(new ConversationMessage(Role.USER, toolResults));
 
+            // Auto-extract durable memories from the turn
+            extractMemories(conversation);
+
             publisher.submit(new StreamEvent.StatusEvent(
                     "Turn " + (turn + 1) + " complete, " + toolUses.size() + " tool(s) executed",
                     StreamEvent.StatusLevel.INFO));
         }
 
+        saveSessionCheckpoint(conversation);
         publisher.submit(new StreamEvent.ErrorStreamEvent(
                 "Max turns (" + maxTurns + ") exceeded"));
+    }
+
+    private void saveSessionCheckpoint(List<ConversationMessage> conversation) {
+        if (sessionEndCallback != null) {
+            try {
+                sessionEndCallback.accept(conversation);
+            } catch (Exception e) {
+                // Best-effort
+            }
+        }
     }
 
     /**
@@ -295,6 +406,39 @@ public class QueryEngine implements AgentRuntime {
         if (!textBuilder.isEmpty()) {
             blocks.add(new ContentBlock.TextBlock(textBuilder.toString()));
             textBuilder.setLength(0);
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // Memory extraction (callback-based)
+    // ------------------------------------------------------------------
+
+    private void extractMemories(List<ConversationMessage> conversation) {
+        if (afterTurnCallback != null) {
+            try {
+                afterTurnCallback.accept(conversation);
+            } catch (Exception e) {
+                // Silent — memory extraction is best-effort
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // Manual compaction
+    // ------------------------------------------------------------------
+
+    /**
+     * Trigger manual LLM compaction via the configured compactFn.
+     *
+     * @param messages  the current conversation to compact
+     * @return compacted conversation, or the original if no compactFn is wired
+     */
+    public List<ConversationMessage> compact(List<ConversationMessage> messages) {
+        if (compactFn == null) return messages;
+        try {
+            return compactFn.apply(messages);
+        } catch (Exception e) {
+            return messages;
         }
     }
 

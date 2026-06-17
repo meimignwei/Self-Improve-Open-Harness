@@ -17,6 +17,8 @@ class McpAuthToolTest {
             @Override public java.util.List<McpClient.McpResourceInfo> listResources(String serverName) { return java.util.List.of(); }
             @Override public String readResource(String serverName, String uri) { return ""; }
             @Override public String callTool(String serverName, String toolName, com.fasterxml.jackson.databind.JsonNode args) { return ""; }
+            @Override public java.util.List<McpClient.McpPromptInfo> listPrompts(String serverName) { return java.util.List.of(); }
+            @Override public String getPrompt(String serverName, String promptName, java.util.Map<String, String> arguments) { return ""; }
             @Override public void disconnect(String serverName) {}
         };
 

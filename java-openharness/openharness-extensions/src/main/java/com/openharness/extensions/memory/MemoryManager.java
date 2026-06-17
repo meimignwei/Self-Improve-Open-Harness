@@ -43,9 +43,10 @@ public class MemoryManager {
 
     /**
      * Creates a MemoryManager for a project-specific memory directory.
+     * Uses Paths.projectMemoryDir() matching Python's sha1-hash approach.
      */
     public static MemoryManager createProjectManager(Path cwd, MemorySettings settings) {
-        Path dir = Paths.projectConfigDir(cwd).resolve("memory");
+        Path dir = Paths.projectMemoryDir(cwd);
         return new MemoryManager(dir, settings);
     }
 
@@ -128,9 +129,12 @@ public class MemoryManager {
     }
 
     public List<MemoryEntry> listAll() {
-        return store.loadAll().stream()
-                .filter(m -> !m.isExpired())
-                .toList();
+        var stream = store.loadAll().stream()
+                .filter(m -> !m.isExpired());
+        if (settings.maxFiles() > 0) {
+            stream = stream.limit(settings.maxFiles());
+        }
+        return stream.toList();
     }
 
     public List<MemoryEntry> listByType(MemoryType type) {

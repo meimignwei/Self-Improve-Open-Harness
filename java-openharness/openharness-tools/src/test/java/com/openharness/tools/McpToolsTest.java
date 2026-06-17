@@ -19,6 +19,8 @@ class McpToolsTest {
             @Override public List<McpClient.McpResourceInfo> listResources(String serverName) { return List.of(); }
             @Override public String readResource(String serverName, String uri) { return ""; }
             @Override public String callTool(String serverName, String toolName, com.fasterxml.jackson.databind.JsonNode args) { return ""; }
+            @Override public List<McpClient.McpPromptInfo> listPrompts(String serverName) { return List.of(); }
+            @Override public String getPrompt(String serverName, String promptName, java.util.Map<String, String> arguments) { return ""; }
             @Override public void disconnect(String serverName) {}
         };
 
@@ -37,6 +39,8 @@ class McpToolsTest {
             }
             @Override public String readResource(String serverName, String uri) { return ""; }
             @Override public String callTool(String serverName, String toolName, com.fasterxml.jackson.databind.JsonNode args) { return ""; }
+            @Override public List<McpClient.McpPromptInfo> listPrompts(String serverName) { return List.of(); }
+            @Override public String getPrompt(String serverName, String promptName, java.util.Map<String, String> arguments) { return ""; }
             @Override public void disconnect(String serverName) {}
         };
 
@@ -54,6 +58,8 @@ class McpToolsTest {
             @Override public List<McpClient.McpResourceInfo> listResources(String serverName) { return List.of(); }
             @Override public String readResource(String serverName, String uri) { return "hello world"; }
             @Override public String callTool(String serverName, String toolName, com.fasterxml.jackson.databind.JsonNode args) { return ""; }
+            @Override public List<McpClient.McpPromptInfo> listPrompts(String serverName) { return List.of(); }
+            @Override public String getPrompt(String serverName, String promptName, java.util.Map<String, String> arguments) { return ""; }
             @Override public void disconnect(String serverName) {}
         };
 
@@ -70,6 +76,8 @@ class McpToolsTest {
             @Override public List<McpClient.McpResourceInfo> listResources(String serverName) { return List.of(); }
             @Override public String readResource(String serverName, String uri) { return ""; }
             @Override public String callTool(String serverName, String toolName, com.fasterxml.jackson.databind.JsonNode args) { return ""; }
+            @Override public List<McpClient.McpPromptInfo> listPrompts(String serverName) { return List.of(); }
+            @Override public String getPrompt(String serverName, String promptName, java.util.Map<String, String> arguments) { return ""; }
             @Override public void disconnect(String serverName) {}
         };
         assertTrue(new McpTools.ListMcpResourcesTool(client).isReadOnly(

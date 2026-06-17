@@ -14,9 +14,9 @@ import java.util.Set;
  */
 public class MemoryExtractionService {
 
-    private static final Set<String> WRITE_TOOLS = Set.of("write_file", "edit_file");
+    private static final Set<String> WRITE_TOOLS = Set.of("write", "edit");
 
-    private static final String EXTRACTION_SYSTEM_PROMPT = """
+    public static final String EXTRACTION_SYSTEM_PROMPT = """
             Extract durable facts as JSON: [{"name":"...","type":"user|feedback|project|reference","content":"..."}]
             Skip transient/in-progress items. Avoid duplicates with existing memories below.
             """;

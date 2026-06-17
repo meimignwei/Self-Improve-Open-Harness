@@ -20,7 +20,9 @@ com/openharness/common/PublisherAdapter$1.class
 com/openharness/common/StreamEvent$ErrorStreamEvent.class
 com/openharness/common/ContentBlock$ImageBlock.class
 com/openharness/common/ContentBlock.class
+com/openharness/common/McpClient$McpPromptInfo.class
 com/openharness/common/StreamEvent$StatusEvent.class
+com/openharness/common/McpClient$McpPromptArgInfo.class
 com/openharness/common/PublisherAdapter.class
 com/openharness/common/TeamRegistry$TeamRecord.class
 com/openharness/common/ApiStreamEvent$ToolUseComplete.class

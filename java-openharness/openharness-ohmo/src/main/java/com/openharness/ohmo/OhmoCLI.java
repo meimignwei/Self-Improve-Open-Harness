@@ -83,6 +83,84 @@ public class OhmoCLI {
     }
 
     // ==================================================================
+    // setup — interactive workspace wizard
+    // ==================================================================
+
+    public void setup() {
+        System.out.println();
+        System.out.println("  ohmo workspace setup");
+        System.out.println("  " + workspaceRoot);
+        System.out.println();
+
+        wm.initialize(workspaceRoot);
+
+        // Step 1: Provider profile
+        GatewayConfig config = GatewayConfig.loadFromWorkspace(workspaceRoot);
+        System.out.println("  Provider profile: " + config.providerProfile());
+        System.out.println("  Available: codex (Anthropic), openai, deepseek, dashscope, moonshot, gemini");
+        System.out.print("  Change? (enter to keep): ");
+        System.out.flush();
+        try (var scanner = new java.util.Scanner(System.in)) {
+            String profile = scanner.nextLine().trim();
+            if (!profile.isEmpty()) {
+                config = config.withProviderProfile(profile);
+            }
+
+            // Step 2: Channels
+            System.out.println();
+            System.out.println("  Enable channels?");
+            System.out.println("    1. none (terminal only)");
+            System.out.println("    2. feishu");
+            System.out.println("    3. feishu + slack");
+            System.out.print("  Choice [1]: ");
+            System.out.flush();
+            String chChoice = scanner.nextLine().trim();
+            if (chChoice.isEmpty()) chChoice = "1";
+
+            Map<String, Map<String, Object>> channelConfigs = new LinkedHashMap<>();
+            List<String> channels = new ArrayList<>();
+            switch (chChoice) {
+                case "2" -> {
+                    channels = List.of("feishu");
+                    channelConfigs.put("feishu", configureFeishu(scanner));
+                }
+                case "3" -> {
+                    channels = List.of("feishu", "slack");
+                    channelConfigs.put("feishu", configureFeishu(scanner));
+                }
+                default -> channels = List.of();
+            }
+            config = config.withChannels(channels, channelConfigs);
+
+            // Save
+            Path saved = config.saveToWorkspace(workspaceRoot);
+            System.out.println();
+            System.out.println("  Gateway config saved to " + saved);
+            System.out.println("  Run 'ohmo run' to start — use 'ohmo run --with-channels' for Feishu.");
+        }
+    }
+
+    private Map<String, Object> configureFeishu(java.util.Scanner scanner) {
+        Map<String, Object> feishu = new LinkedHashMap<>();
+        System.out.println();
+        System.out.println("  Feishu (Lark) configuration — get credentials from https://open.feishu.cn");
+        System.out.print("  App ID: ");
+        System.out.flush();
+        feishu.put("app_id", scanner.nextLine().trim());
+        System.out.print("  App Secret: ");
+        System.out.flush();
+        feishu.put("app_secret", scanner.nextLine().trim());
+        System.out.print("  Verification Token: ");
+        System.out.flush();
+        feishu.put("verification_token", scanner.nextLine().trim());
+        System.out.print("  Webhook port [18080]: ");
+        System.out.flush();
+        String port = scanner.nextLine().trim();
+        feishu.put("webhook_port", port.isEmpty() ? 18080 : Integer.parseInt(port));
+        return feishu;
+    }
+
+    // ==================================================================
     // doctor — health check
     // ==================================================================
 
@@ -577,6 +655,7 @@ public class OhmoCLI {
                     boolean interactive = !hasFlag(args, "--no-interactive");
                     cli.init(interactive);
                 }
+                case "setup" -> cli.setup();
                 case "config" -> cli.config();
                 case "doctor" -> cli.doctor();
 
@@ -785,6 +864,7 @@ public class OhmoCLI {
         System.out.println("Usage: ohmo <command> [options]");
         System.out.println();
         System.out.println("Commands:");
+        System.out.println("  setup             Interactive setup wizard for ohmo workspace");
         System.out.println("  run               Start interactive session (--no-coordinator for single-agent)");
         System.out.println("  init              Initialize the .ohmo workspace");
         System.out.println("  config            Show gateway configuration");

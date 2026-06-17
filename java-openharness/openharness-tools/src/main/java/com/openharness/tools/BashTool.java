@@ -11,7 +11,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 /**
- * Shell command execution tool.
+ * Shell command execution tool with optional SRT sandbox support.
  * Java equivalent of Python's BashTool.
  */
 public class BashTool extends BaseTool<BashTool.Input> {
@@ -19,6 +19,18 @@ public class BashTool extends BaseTool<BashTool.Input> {
     private static final Logger LOG = Logger.getLogger(BashTool.class.getName());
     private static final int DEFAULT_TIMEOUT_SECONDS = 600;
     private static final int READ_REMAINING_TIMEOUT = 2;
+
+    /** Sandbox interceptor — set via {@link #setSandboxInterceptor}. */
+    private static volatile com.openharness.extensions.sandbox.BashSandboxInterceptor sandboxInterceptor;
+
+    /**
+     * Enable sandbox interception for bash command execution.
+     * Called by GatewayEngineFactory during engine wiring.
+     */
+    public static void setSandboxInterceptor(
+            com.openharness.extensions.sandbox.BashSandboxInterceptor interceptor) {
+        sandboxInterceptor = interceptor;
+    }
 
     public BashTool() {
         super("bash", "Run a shell command in the local repository.", Input.class);
@@ -30,6 +42,13 @@ public class BashTool extends BaseTool<BashTool.Input> {
                 ? Path.of(arguments.cwd().replaceFirst("^~", System.getProperty("user.home")))
                 : context.cwd();
 
+        // Intercept command through sandbox if enabled
+        String effectiveCommand = arguments.command();
+        if (sandboxInterceptor != null && sandboxInterceptor.isEnabled()) {
+            effectiveCommand = sandboxInterceptor.interceptCommand(
+                    effectiveCommand, "bash", cwd);
+        }
+
         // Preflight: reject interactive commands
         String preflightError = preflightInteractive(arguments.command());
         if (preflightError != null) {
@@ -37,7 +56,7 @@ public class BashTool extends BaseTool<BashTool.Input> {
         }
 
         try {
-            ProcessBuilder pb = new ProcessBuilder("bash", "-c", arguments.command());
+            ProcessBuilder pb = new ProcessBuilder("bash", "-c", effectiveCommand);
             pb.directory(cwd.toFile());
             pb.redirectErrorStream(true);
 

@@ -40,8 +40,11 @@
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/prompts/ClaudeMdLoader.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/prompts/EnvironmentInfoBuilder.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/prompts/SystemPromptBuilder.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/sandbox/BashSandboxInterceptor.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/sandbox/PathValidator.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/sandbox/SandboxAdapter.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/sandbox/SandboxManager.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/sandbox/SrtSandbox.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/services/AutoDreamService.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/services/CodeIntelligence.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/services/CompactionService.java

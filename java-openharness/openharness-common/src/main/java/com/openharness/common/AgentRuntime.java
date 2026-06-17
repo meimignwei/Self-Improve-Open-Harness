@@ -11,4 +11,12 @@ public interface AgentRuntime {
     Flow.Publisher<StreamEvent> runQuery(
             List<ConversationMessage> messages,
             QueryOptions options);
+
+    /**
+     * Trigger manual compaction. Default is no-op.
+     * @return status message describing what was compacted
+     */
+    default String compact() {
+        return "Compaction not supported by this runtime.";
+    }
 }

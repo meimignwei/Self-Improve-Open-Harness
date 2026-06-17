@@ -6,6 +6,7 @@ import com.openharness.common.McpClient;
 import com.openharness.common.TeamRegistry;
 import com.openharness.engine.task.TaskManager;
 import com.openharness.engine.tool.ToolRegistry;
+import com.openharness.extensions.memory.MemoryTools;
 
 import java.nio.file.Path;
 
@@ -35,6 +36,7 @@ public final class ToolBootstrap {
         registerWorktreeTools(registry);
         registerImageTools(registry);
         registerLspTools(registry);
+        registerMemoryTools(registry);
         return registry;
     }
 
@@ -72,6 +74,8 @@ public final class ToolBootstrap {
         if (mcpClient != null) {
             registry.register(new McpTools.ListMcpResourcesTool(mcpClient));
             registry.register(new McpTools.ReadMcpResourceTool(mcpClient));
+            registry.register(new McpTools.ListMcpPromptsTool(mcpClient));
+            registry.register(new McpTools.GetMcpPromptTool(mcpClient));
             if (configPath != null) {
                 registry.register(new McpAuthTool(mcpClient, configPath));
             }
@@ -151,5 +155,12 @@ public final class ToolBootstrap {
 
     public static void registerLspTools(ToolRegistry registry) {
         registry.register(new LspTool());
+    }
+
+    public static void registerMemoryTools(ToolRegistry registry) {
+        registry.register(new MemoryTools.MemoryCreateTool());
+        registry.register(new MemoryTools.MemoryReadTool());
+        registry.register(new MemoryTools.MemorySearchTool());
+        registry.register(new MemoryTools.MemoryDeleteTool());
     }
 }
