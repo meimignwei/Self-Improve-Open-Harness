@@ -8,6 +8,7 @@
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/test/java/com/openharness/extensions/memory/MemorySearchTest.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/test/java/com/openharness/extensions/memory/MemorySignatureTest.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/test/java/com/openharness/extensions/memory/MemoryTypeTest.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/test/java/com/openharness/extensions/services/MemoryExtractionServiceTest.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/test/java/com/openharness/extensions/skills/SkillLoaderBundledTest.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/test/java/com/openharness/extensions/swarm/FileMailboxTest.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/test/java/com/openharness/extensions/swarm/InProcessBackendTest.java

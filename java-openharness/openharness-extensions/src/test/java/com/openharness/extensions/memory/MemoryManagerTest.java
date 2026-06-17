@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -117,13 +118,14 @@ class MemoryManagerTest {
         var entry = MemoryEntry.create(MemoryType.USER, "Expired", "desc", "body");
         var header = entry.header();
         var expiredHeader = new MemoryEntry.MemoryHeader(
-                header.schemaVersion(), UUID.randomUUID().toString(), header.name(),
-                header.description(), header.type(), header.category(),
+                header.schemaVersion(), MemoryEntry.generateMemoryId(), header.name(),
+                header.description(), header.type(), header.scope(), header.category(),
                 header.importance(), header.source(),
-                MemorySignature.compute(header.name(), entry.body()),
+                MemorySignature.compute(entry.body(), header.type().name().toLowerCase(),
+                        header.category() != null ? header.category() : "knowledge"),
                 java.time.Instant.now().minus(2, java.time.temporal.ChronoUnit.DAYS),
                 java.time.Instant.now().minus(2, java.time.temporal.ChronoUnit.DAYS),
-                1, false, java.util.List.of());
+                1, false, java.util.List.of(), header.tags());
         var expired = new MemoryEntry(expiredHeader, entry.body());
         // Save directly to preserve expired timestamps (create() would regenerate)
         manager.store().save(expired);
@@ -147,5 +149,74 @@ class MemoryManagerTest {
     void storeAndUsageTrackerShouldBeAccessible() {
         assertNotNull(manager.store());
         assertNotNull(manager.usageTracker());
+    }
+
+    @Test
+    void addMemoryEntryShouldCreateAndUpdateIndex() {
+        Path path = manager.addMemoryEntry(memoryDir, "Index Test", "Memory content",
+                MemoryType.USER, "project", "Test description", List.of());
+
+        assertNotNull(path);
+        assertTrue(java.nio.file.Files.exists(path));
+
+        // Check MEMORY.md was created
+        Path entrypoint = memoryDir.resolve("MEMORY.md");
+        assertTrue(java.nio.file.Files.exists(entrypoint));
+        try {
+            String content = java.nio.file.Files.readString(entrypoint);
+            assertTrue(content.contains("Index Test"));
+            assertTrue(content.contains(path.getFileName().toString()));
+        } catch (Exception e) {
+            fail(e);
+        }
+    }
+
+    @Test
+    void addMemoryEntryShouldDeduplicateBySignature() {
+        Path path1 = manager.addMemoryEntry(memoryDir, "Dup Test", "Same content here",
+                MemoryType.USER, "project", "desc", List.of());
+        Path path2 = manager.addMemoryEntry(memoryDir, "Dup Test", "Same content here",
+                MemoryType.USER, "project", "desc", List.of());
+
+        assertEquals(path1, path2, "Should reuse same file for duplicate content");
+    }
+
+    @Test
+    void removeMemoryEntryShouldSoftDelete() {
+        Path path = manager.addMemoryEntry(memoryDir, "Remove Test", "Content to remove",
+                MemoryType.USER, "project", "desc", List.of());
+
+        // Find entry ID from file
+        var loaded = manager.store().parseMemoryFile(path);
+        boolean removed = manager.removeMemoryEntry(loaded.header().name());
+        assertTrue(removed);
+
+        // Should be soft-deleted (disabled=true)
+        var afterRemoval = manager.store().parseMemoryFile(path);
+        assertTrue(afterRemoval.header().disabled());
+
+        // MEMORY.md should no longer have the entry
+        try {
+            String entrypointContent = java.nio.file.Files.readString(memoryDir.resolve("MEMORY.md"));
+            assertFalse(entrypointContent.contains(path.getFileName().toString()));
+        } catch (Exception e) {
+            fail(e);
+        }
+    }
+
+    @Test
+    void removeMemoryEntryShouldReturnFalseForAlreadyDisabled() {
+        Path path = manager.addMemoryEntry(memoryDir, "Disabled Test", "Content",
+                MemoryType.USER, "project", "desc", List.of());
+        var loaded = manager.store().parseMemoryFile(path);
+        manager.removeMemoryEntry(loaded.header().name());
+        // Second removal should return false
+        boolean second = manager.removeMemoryEntry(loaded.header().name());
+        assertFalse(second);
+    }
+
+    @Test
+    void removeMemoryEntryShouldReturnFalseForUnknown() {
+        assertFalse(manager.removeMemoryEntry("nonexistent-name"));
     }
 }

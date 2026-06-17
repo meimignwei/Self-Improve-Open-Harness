@@ -1,4 +1,5 @@
 com/openharness/extensions/memory/MemoryEntryTest$BuilderTest.class
+com/openharness/extensions/services/MemoryExtractionServiceTest.class
 com/openharness/extensions/channels/BaseChannelTest$TestChannel.class
 com/openharness/extensions/swarm/FileMailboxTest.class
 com/openharness/extensions/swarm/TeammateSpecTest.class

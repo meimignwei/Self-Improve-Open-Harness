@@ -16,7 +16,6 @@ import com.openharness.engine.AutoCompactState;
 import com.openharness.engine.QueryEngine;
 import com.openharness.engine.tool.ToolRegistry;
 import com.openharness.extensions.memory.MemoryManager;
-import com.openharness.extensions.memory.MemoryType;
 import com.openharness.extensions.sandbox.BashSandboxInterceptor;
 import com.openharness.extensions.sandbox.SandboxManager;
 import com.openharness.extensions.services.AutoDreamService;
@@ -70,7 +69,7 @@ public class GatewayEngineFactory {
         MemoryExtractionService extractionSvc = new MemoryExtractionService();
 
         Consumer<List<ConversationMessage>> afterTurnCallback = buildAfterTurnCallback(
-                memoryMgr, extractionSvc, apiClient, memSettings);
+                workspaceRoot, extractionSvc, apiClient, memSettings);
 
         Runnable memoryPruner = memoryMgr != null ? memoryMgr::pruneExpired : null;
 
@@ -116,23 +115,31 @@ public class GatewayEngineFactory {
         }
 
         // Wire auto-dream background consolidation
-        scheduleAutoDream(workspaceRoot, memSettings);
+        scheduleAutoDream(workspaceRoot, memSettings, apiClient);
 
         this.engine = qe;
         this.toolRegistry = registry;
     }
 
-    private static void scheduleAutoDream(Path workspaceRoot, MemorySettings memSettings) {
+    private static void scheduleAutoDream(Path workspaceRoot, MemorySettings memSettings,
+                                          StreamingApiClient apiClient) {
         if (!memSettings.autoDreamEnabled()) return;
 
-        Path memoryDir = workspaceRoot.resolve("memory");
+        Path memoryDir = com.openharness.config.Paths.projectMemoryDir(workspaceRoot);
+        Path sessionDir = com.openharness.config.Paths.projectSessionDir(workspaceRoot);
         if (!Files.exists(memoryDir)) return;
 
-        AutoDreamService dreamService = new AutoDreamService(memoryDir);
-        long intervalHours = (long) (memSettings.autoDreamMinHours() > 0
-                ? memSettings.autoDreamMinHours() : 24);
+        double minHours = memSettings.autoDreamMinHours() > 0
+                ? memSettings.autoDreamMinHours() : 24;
         int minSessions = memSettings.autoDreamMinSessions() > 0
                 ? memSettings.autoDreamMinSessions() : 5;
+
+        AutoDreamService dreamService = new AutoDreamService(
+                workspaceRoot, memoryDir, sessionDir, minHours, minSessions,
+                "ohmo",
+                (sysPrompt, userPrompt) -> syncComplete(apiClient, sysPrompt, userPrompt));
+
+        long intervalHours = (long) minHours;
 
         Thread.ofVirtual()
                 .name("autodream-scheduler")
@@ -141,19 +148,8 @@ public class GatewayEngineFactory {
                         while (!Thread.interrupted()) {
                             Thread.sleep(Duration.ofHours(intervalHours));
                             try {
-                                // Check minimum session threshold
-                                long memFileCount;
-                                try (var files = Files.list(memoryDir)) {
-                                    memFileCount = files.filter(
-                                            f -> f.getFileName().toString().endsWith(".md")).count();
-                                }
-                                if (memFileCount < minSessions) {
-                                    logger.debug("AutoDream: skipping — {} memory files < {} min sessions",
-                                            memFileCount, minSessions);
-                                    continue;
-                                }
-                                var result = dreamService.consolidate(List.of());
-                                if (result.success()) {
+                                var result = dreamService.executeAutoDream(null);
+                                if (result != null && result.success()) {
                                     logger.info("AutoDream: oriented={} gathered={} pruned={}",
                                             result.oriented(), result.gathered(), result.pruned());
                                 }
@@ -252,42 +248,21 @@ public class GatewayEngineFactory {
      * Build the after-turn callback that auto-extracts durable memories via LLM.
      */
     private static Consumer<List<ConversationMessage>> buildAfterTurnCallback(
-            MemoryManager memoryMgr, MemoryExtractionService extractionSvc,
+            Path workspaceRoot, MemoryExtractionService extractionSvc,
             StreamingApiClient apiClient, MemorySettings memSettings) {
-        if (memoryMgr == null || extractionSvc == null) return null;
+        if (extractionSvc == null) return null;
         if (!memSettings.autoExtractEnabled()) return null;
         int maxRecords = memSettings.autoExtractMaxRecords() > 0
                 ? memSettings.autoExtractMaxRecords() : 3;
         return (conversation) -> {
-            var recentMessages = conversation.size() <= 6
-                    ? conversation
-                    : conversation.subList(conversation.size() - 6, conversation.size());
-
             try {
-                String existingMemories = memoryMgr.listAll().stream()
-                        .limit(10)
-                        .map(m -> m.header().name() + ": " + m.body())
-                        .reduce("", (a, b) -> a + "\n" + b);
-
-                String llmResult = syncComplete(apiClient,
-                        MemoryExtractionService.EXTRACTION_SYSTEM_PROMPT,
-                        MemoryExtractionService.EXTRACTION_SYSTEM_PROMPT
-                                + "\n\nRecent conversation:\n" + summarizeMessages(recentMessages));
-
-                var records = extractionSvc.extract(recentMessages, existingMemories,
-                        () -> llmResult);
-
-                int count = 0;
-                for (var record : records) {
-                    if (count >= maxRecords) break;
-                    MemoryType type;
-                    try {
-                        type = MemoryType.valueOf(record.type().toUpperCase());
-                    } catch (IllegalArgumentException e) {
-                        type = MemoryType.PROJECT;
-                    }
-                    memoryMgr.create(type, record.name(), "", record.content());
-                    count++;
+                var result = extractionSvc.extractMemoriesFromTurn(
+                        workspaceRoot,
+                        (sysPrompt, userPrompt) -> syncComplete(apiClient, sysPrompt, userPrompt),
+                        conversation,
+                        maxRecords);
+                if (!result.skipped()) {
+                    logger.debug("Auto-extracted {} durable memories", result.writtenPaths().size());
                 }
             } catch (Exception e) {
                 // Best-effort
@@ -321,23 +296,4 @@ public class GatewayEngineFactory {
         }
     }
 
-    private static String summarizeMessages(List<ConversationMessage> messages) {
-        StringBuilder sb = new StringBuilder();
-        for (var msg : messages) {
-            sb.append("[").append(msg.role().name()).append("]: ");
-            for (var block : msg.content()) {
-                if (block instanceof ContentBlock.TextBlock tb) {
-                    String t = tb.text();
-                    sb.append(t, 0, Math.min(t.length(), 500));
-                } else if (block instanceof ContentBlock.ToolUseBlock tub) {
-                    sb.append("[tool:").append(tub.name()).append("]");
-                } else if (block instanceof ContentBlock.ToolResultBlock trb) {
-                    String c = trb.content();
-                    sb.append("[result:").append(c, 0, Math.min(c.length(), 200)).append("]");
-                }
-            }
-            sb.append("\n");
-        }
-        return sb.toString();
-    }
 }

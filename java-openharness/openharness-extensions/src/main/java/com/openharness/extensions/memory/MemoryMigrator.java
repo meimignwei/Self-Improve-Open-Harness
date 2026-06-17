@@ -6,12 +6,13 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Stream;
 
 /**
  * Schema migration for memory entries.
  * Java equivalent of Python memory/migrate.py.
+ *
+ * Migrates from older schema versions to SCHEMA_VERSION=1 with full 18-field frontmatter.
  */
 public class MemoryMigrator {
 
@@ -31,7 +32,7 @@ public class MemoryMigrator {
                         try {
                             MemoryEntry entry = store.parseMemoryFile(f);
                             MemoryEntry migrated = migrateEntry(entry, fromVersion);
-                            store.save(migrated);
+                            store.saveAs(migrated, f);
                         } catch (Exception e) {
                             System.err.println("Failed to migrate: " + f + " - " + e.getMessage());
                         }
@@ -62,29 +63,40 @@ public class MemoryMigrator {
         }
     }
 
+    /**
+     * Migrate an entry to schema v1 with complete 18-field frontmatter.
+     * Uses memory_metadata_from_path semantics: preserves existing values,
+     * fills in defaults for missing fields.
+     */
     MemoryEntry migrateEntry(MemoryEntry entry, int fromVersion) {
-        if (entry.header().schemaVersion() >= 2) {
+        MemoryEntry.MemoryHeader h = entry.header();
+
+        if (h.schemaVersion() == MemoryEntry.SCHEMA_VERSION && h.scope() != null && h.tags() != null) {
             return entry;
         }
 
-        // v1 → v2: add missing fields
-        MemoryEntry.MemoryHeader h = entry.header();
+        String typeStr = h.type() != null ? h.type().name().toLowerCase() : "project";
+        String cat = h.category() != null ? h.category() : "knowledge";
+        String sig = h.signature() != null ? h.signature()
+                : MemorySignature.compute(entry.body(), typeStr, cat);
+
         MemoryEntry.MemoryHeader newHeader = new MemoryEntry.MemoryHeader(
-                2,
-                h.id() != null ? h.id() : UUID.randomUUID().toString(),
+                MemoryEntry.SCHEMA_VERSION,
+                h.id() != null ? h.id() : MemoryEntry.generateMemoryId(),
                 h.name(),
                 h.description(),
-                h.type() != null ? h.type() : MemoryType.USER,
-                h.category(),
+                h.type() != null ? h.type() : MemoryType.PROJECT,
+                h.scope() != null ? h.scope() : "project",
+                cat,
                 h.importance() > 0 ? h.importance() : 5,
                 h.source(),
-                h.signature() != null ? h.signature()
-                        : MemorySignature.compute(h.name(), entry.body()),
+                sig,
                 h.createdAt() != null ? h.createdAt() : Instant.now(),
                 h.updatedAt() != null ? h.updatedAt() : Instant.now(),
                 h.ttlDays(),
                 h.disabled(),
-                h.supersedes());
+                h.supersedes() != null ? h.supersedes() : List.of(),
+                h.tags() != null ? h.tags() : List.of());
         return new MemoryEntry(newHeader, entry.body());
     }
 }

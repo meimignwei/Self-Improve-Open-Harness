@@ -93,18 +93,28 @@ class MemoryIntegrationTest {
     }
 
     @Test
-    void searchReturnsResultsEvenForNonspecificQuery() {
+    void searchReturnsResultsForMatchingQuery() {
         manager.create(MemoryEntry.create(
                 MemoryType.USER, "test",
                 "Test", "Java testing"));
 
-        // Composite scoring (importance + recency) means search always returns results.
-        // This is expected behavior — no minimum relevance threshold.
-        var results = manager.search("nonexistent_xyz_123", 5);
+        // Matching query should return results with relevance score
+        var results = manager.search("Java", 5);
         assertFalse(results.isEmpty());
-        // But relevance should be low — no metadata or body match
-        assertTrue(results.getFirst().score() < 2.0,
-                "Score should be low for non-matching query, got: " + results.getFirst().score());
+        assertTrue(results.getFirst().score() > 0,
+                "Score should be > 0 for matching query, got: " + results.getFirst().score());
+    }
+
+    @Test
+    void searchReturnsEmptyForNonmatchingQuery() {
+        manager.create(MemoryEntry.create(
+                MemoryType.USER, "test",
+                "Test", "Java testing"));
+
+        // Non-matching query returns nothing (Python behavior: only entries with hits)
+        var results = manager.search("nonexistent_xyz_123", 5);
+        assertTrue(results.isEmpty(),
+                "Non-matching query should return empty, got: " + results.size() + " results");
     }
 
     @Test

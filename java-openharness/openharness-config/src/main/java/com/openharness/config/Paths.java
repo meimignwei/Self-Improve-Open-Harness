@@ -52,6 +52,19 @@ public final class Paths {
         return dir;
     }
 
+    /**
+     * Returns the project session directory using content-addressed hashing.
+     * Matching Python's get_project_session_dir(): sessions/<name>-<sha1>/
+     */
+    public static Path projectSessionDir(Path cwd) {
+        String absPath = cwd.toAbsolutePath().normalize().toString();
+        String digest = sha1Hex(absPath).substring(0, 12);
+        String dirName = cwd.toAbsolutePath().normalize().getFileName().toString() + "-" + digest;
+        Path dir = sessionsDir().resolve(dirName);
+        ensureDir(dir);
+        return dir;
+    }
+
     public static Path tasksDir() {
         Path dir = dataDir().resolve("tasks");
         ensureDir(dir);
