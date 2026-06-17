@@ -17,8 +17,8 @@
         <module>openharness-config</module>
         <module>openharness-api</module>
         <module>openharness-engine</module>
-        <module>openharness-tools</module>
         <module>openharness-extensions</module>
+        <module>openharness-tools</module>
         <module>openharness-ui</module>
         <module>openharness-cli</module>
         <module>openharness-ohmo</module>

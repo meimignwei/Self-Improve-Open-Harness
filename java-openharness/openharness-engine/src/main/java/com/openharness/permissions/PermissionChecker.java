@@ -2,8 +2,6 @@ package com.openharness.permissions;
 
 import com.openharness.config.PermissionSettings;
 
-import java.nio.file.FileSystems;
-import java.nio.file.PathMatcher;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -123,13 +121,24 @@ public class PermissionChecker {
     }
 
     /**
-     * Simple fnmatch-style glob matching using Java NIO PathMatcher.
+     * Python fnmatch-compatible glob matching.
+     * * matches everything including path separators, ? matches a single non-/ character.
      */
     static boolean fnmatch(String path, String pattern) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < pattern.length(); i++) {
+            char c = pattern.charAt(i);
+            switch (c) {
+                case '*': sb.append(".*"); break;
+                case '?': sb.append("[^/]"); break;
+                case '.': case '+': case '(': case ')': case '{': case '}':
+                case '^': case '$': case '|': case '\\':
+                    sb.append('\\').append(c); break;
+                default: sb.append(c);
+            }
+        }
         try {
-            PathMatcher matcher = FileSystems.getDefault()
-                    .getPathMatcher("glob:" + pattern);
-            return matcher.matches(java.nio.file.Path.of(path));
+            return path.matches(sb.toString());
         } catch (Exception e) {
             return false;
         }

@@ -1,5 +1,7 @@
 package com.openharness.common;
 
+import java.util.Map;
+
 /**
  * UI-facing stream events — consumed by the frontend via JSON-Lines protocol.
  * Java equivalent of Python's StreamEvent Union type.
@@ -20,7 +22,19 @@ public sealed interface StreamEvent
 
     record StatusEvent(String message, StatusLevel level) implements StreamEvent {}
 
-    record CompactProgressEvent(int removedMessages, int remainingTokens) implements StreamEvent {}
+    /**
+     * Compaction progress event matching Python's CompactProgressEvent.
+     * phase: hooks_start, context_collapse_start, context_collapse_end,
+     *        session_memory_start, session_memory_end, compact_start,
+     *        compact_retry, compact_end, compact_failed
+     */
+    record CompactProgressEvent(
+            String phase,
+            String trigger,
+            String message,
+            Integer attempt,
+            String checkpoint,
+            Map<String, Object> metadata) implements StreamEvent {}
 
     record ErrorStreamEvent(String message) implements StreamEvent {}
 

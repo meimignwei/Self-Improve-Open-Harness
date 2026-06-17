@@ -1,6 +1,7 @@
 com/openharness/tools/McpToolsTest$3.class
 com/openharness/tools/McpToolAdapterTest$1.class
 com/openharness/tools/ImageGenerationToolTest.class
+com/openharness/tools/AgentToolTest.class
 com/openharness/tools/RemoteTriggerToolTest$1.class
 com/openharness/tools/ImageToTextToolTest.class
 com/openharness/tools/McpToolAdapterTest.class

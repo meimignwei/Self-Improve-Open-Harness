@@ -36,7 +36,8 @@ public class CronRegistry implements com.openharness.common.CronJobRegistry {
                 job.id() != null ? job.id() : UUID.randomUUID().toString(),
                 job.cronExpr(), job.command(), job.enabled(),
                 job.timezone(), job.description(),
-                job.lastRun(), computeNextRun(job.cronExpr()));
+                job.lastRun(), computeNextRun(job.cronExpr()),
+                job.cwd());
 
         jobs.add(saved);
         AtomicFileWriter.writeJson(configPath, jobs);
@@ -73,7 +74,7 @@ public class CronRegistry implements com.openharness.common.CronJobRegistry {
             if (j.id().equals(jobId)) {
                 jobs.set(i, new CronJob(j.id(), j.cronExpr(), j.command(), j.enabled(),
                         j.timezone(), j.description(), Instant.now(),
-                        computeNextRun(j.cronExpr())));
+                        computeNextRun(j.cronExpr()), j.cwd()));
                 break;
             }
         }

@@ -5,22 +5,22 @@ import com.openharness.engine.tool.BaseTool;
 import com.openharness.engine.tool.ToolExecutionContext;
 
 /**
- * Truncates text to a maximum character count.
+ * Shorten a piece of text for compact display.
  */
 public class BriefTool extends BaseTool<BriefTool.Input> {
 
     public BriefTool() {
-        super("brief", "Truncates text to a maximum character count, appending '...' if truncated.", Input.class);
+        super("brief", "Shorten a piece of text for compact display.", Input.class);
     }
 
     @Override
     public ToolResult execute(Input arguments, ToolExecutionContext context) {
-        String text = arguments.text();
+        String text = arguments.text().strip();
         int maxChars = arguments.maxChars();
         if (text.length() <= maxChars) {
             return ToolResult.success(text);
         }
-        return ToolResult.success(text.substring(0, maxChars) + "...");
+        return ToolResult.success(text.substring(0, maxChars).stripTrailing() + "...");
     }
 
     @Override
@@ -33,6 +33,10 @@ public class BriefTool extends BaseTool<BriefTool.Input> {
             if (text == null) text = "";
             if (maxChars < 20) maxChars = 20;
             if (maxChars > 2000) maxChars = 2000;
+        }
+
+        public Input(String text) {
+            this(text, 200);
         }
     }
 }

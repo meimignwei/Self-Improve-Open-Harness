@@ -2,69 +2,106 @@ package com.openharness.tools;
 
 import com.openharness.common.ToolResult;
 import com.openharness.engine.tool.ToolExecutionContext;
-import com.openharness.tools.TodoWriteTool.TodoItem;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class TodoWriteToolTest {
 
     private final TodoWriteTool tool = new TodoWriteTool();
-    private final ToolExecutionContext ctx = new ToolExecutionContext(Path.of("."));
 
     @Test
-    void shouldFormatTaskList() {
-        var items = List.of(
-                new TodoItem("Task 1", "First task", "completed", 1),
-                new TodoItem("Task 2", "Second task", "pending", 2)
-        );
-        ToolResult result = tool.execute(new TodoWriteTool.Input(items), ctx);
+    void shouldAddNewItemToFile(@TempDir Path tempDir) throws IOException {
+        Path todoFile = tempDir.resolve("TODO.md");
+        Files.writeString(todoFile, "# TODO\n");
+        var ctx = new ToolExecutionContext(tempDir);
+
+        ToolResult result = tool.execute(new TodoWriteTool.Input("New task", false, "TODO.md"), ctx);
+
         assertFalse(result.isError());
-        assertTrue(result.content().contains("[x] **Task 1**"));
-        assertTrue(result.content().contains("[ ] **Task 2**"));
-        assertTrue(result.content().contains("1/2 tasks completed"));
+        assertTrue(result.content().contains("Added TODO item"));
+        String fileContent = Files.readString(todoFile);
+        assertTrue(fileContent.contains("- [ ] New task"));
     }
 
     @Test
-    void shouldRejectEmptyTodos() {
-        ToolResult result = tool.execute(new TodoWriteTool.Input(List.of()), ctx);
-        assertTrue(result.isError());
-        assertTrue(result.content().contains("At least one todo"));
+    void shouldCheckExistingUncheckedItem(@TempDir Path tempDir) throws IOException {
+        Path todoFile = tempDir.resolve("TODO.md");
+        Files.writeString(todoFile, "# TODO\n- [ ] Buy milk\n");
+        var ctx = new ToolExecutionContext(tempDir);
+
+        ToolResult result = tool.execute(new TodoWriteTool.Input("Buy milk", true, "TODO.md"), ctx);
+
+        assertFalse(result.isError());
+        assertTrue(result.content().contains("Checked TODO item"));
+        String fileContent = Files.readString(todoFile);
+        assertTrue(fileContent.contains("- [x] Buy milk"));
+        assertFalse(fileContent.contains("- [ ] Buy milk"));
     }
 
     @Test
-    void shouldRejectNullTodos() {
+    void shouldUncheckExistingCheckedItem(@TempDir Path tempDir) throws IOException {
+        Path todoFile = tempDir.resolve("TODO.md");
+        Files.writeString(todoFile, "# TODO\n- [x] Done task\n");
+        var ctx = new ToolExecutionContext(tempDir);
+
+        ToolResult result = tool.execute(new TodoWriteTool.Input("Done task", false, "TODO.md"), ctx);
+
+        assertFalse(result.isError());
+        assertTrue(result.content().contains("Unchecked TODO item"));
+        String fileContent = Files.readString(todoFile);
+        assertTrue(fileContent.contains("- [ ] Done task"));
+        assertFalse(fileContent.contains("- [x] Done task"));
+    }
+
+    @Test
+    void shouldReturnNoChangeWhenAlreadyDesiredState(@TempDir Path tempDir) throws IOException {
+        Path todoFile = tempDir.resolve("TODO.md");
+        Files.writeString(todoFile, "# TODO\n- [x] Completed\n");
+        var ctx = new ToolExecutionContext(tempDir);
+
+        ToolResult result = tool.execute(new TodoWriteTool.Input("Completed", true, "TODO.md"), ctx);
+
+        assertFalse(result.isError());
+        assertTrue(result.content().contains("No change needed"));
+    }
+
+    @Test
+    void shouldCreateFileIfNotExists(@TempDir Path tempDir) {
+        var ctx = new ToolExecutionContext(tempDir);
+        Path todoFile = tempDir.resolve("TODO.md");
+        assertFalse(Files.exists(todoFile));
+
+        ToolResult result = tool.execute(new TodoWriteTool.Input("First item", false, "TODO.md"), ctx);
+
+        assertFalse(result.isError());
+        assertTrue(Files.exists(todoFile));
+    }
+
+    @Test
+    void shouldRejectNullItem() {
         assertThrows(IllegalArgumentException.class,
-                () -> new TodoWriteTool.Input(null));
-    }
-
-    @Test
-    void todoItemShouldDefaultStatusToPending() {
-        var item = new TodoItem("Subject only", null, null, 0);
-        assertEquals("pending", item.status());
-    }
-
-    @Test
-    void allCompletedShouldShowFullProgress() {
-        var items = List.of(
-                new TodoItem("A", "", "completed", 1),
-                new TodoItem("B", "", "completed", 1)
-        );
-        ToolResult result = tool.execute(new TodoWriteTool.Input(items), ctx);
-        assertTrue(result.content().contains("2/2 tasks completed"));
+                () -> new TodoWriteTool.Input(null, false, "TODO.md"));
     }
 
     @Test
     void isReadOnlyShouldReturnFalse() {
-        assertFalse(tool.isReadOnly(new TodoWriteTool.Input(List.of(new TodoItem("x", null, null, 0)))));
+        assertFalse(tool.isReadOnly(new TodoWriteTool.Input("test", false, "TODO.md")));
     }
 
     @Test
     void nameShouldBeTodoWrite() {
         assertEquals("todo_write", tool.name());
+    }
+
+    @Test
+    void shouldDefaultPathToTodoMd() {
+        var input = new TodoWriteTool.Input("some item", false, null);
+        assertEquals("TODO.md", input.path());
     }
 }

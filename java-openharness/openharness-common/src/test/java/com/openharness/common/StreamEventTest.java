@@ -43,10 +43,16 @@ class StreamEventTest {
     }
 
     @Test
-    void compactProgressEventShouldHoldCounts() {
-        var event = new StreamEvent.CompactProgressEvent(5, 32000);
-        assertEquals(5, event.removedMessages());
-        assertEquals(32000, event.remainingTokens());
+    void compactProgressEventShouldHoldPhaseAndMetadata() {
+        var event = new StreamEvent.CompactProgressEvent(
+                "compact_start", "auto", "Compacting...", 1, "checkpoint1",
+                java.util.Map.of("tokens", 32000));
+        assertEquals("compact_start", event.phase());
+        assertEquals("auto", event.trigger());
+        assertEquals("Compacting...", event.message());
+        assertEquals(1, event.attempt());
+        assertEquals("checkpoint1", event.checkpoint());
+        assertEquals(32000, event.metadata().get("tokens"));
     }
 
     @Test

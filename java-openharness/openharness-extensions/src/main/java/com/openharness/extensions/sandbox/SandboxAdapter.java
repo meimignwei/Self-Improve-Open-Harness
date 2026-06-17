@@ -1,66 +1,104 @@
 package com.openharness.extensions.sandbox;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.openharness.common.OpenHarnessObjectMapper;
 import com.openharness.config.SandboxSettings;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
-import java.util.Map;
 
 /**
- * Builds sandbox runtime configuration and wraps commands for srt CLI.
+ * Facade for sandbox operations. Delegates to {@link SrtSandbox} for SRT
+ * runtime and {@link SandboxManager} for orchestration.
+ *
  * Java equivalent of Python sandbox/adapter.py.
  */
 public class SandboxAdapter {
 
-    private static final ObjectMapper MAPPER = OpenHarnessObjectMapper.get();
+    private static final Logger logger = LoggerFactory.getLogger(SandboxAdapter.class);
+
+    private final SrtSandbox srt;
+    private final SandboxManager manager;
+
+    public SandboxAdapter() {
+        this.srt = new SrtSandbox();
+        this.manager = new SandboxManager();
+    }
+
+    public SandboxAdapter(SandboxSettings defaultSettings) {
+        this.srt = new SrtSandbox();
+        this.manager = new SandboxManager(defaultSettings);
+    }
+
+    // ------------------------------------------------------------------
+    // Availability
+    // ------------------------------------------------------------------
 
     public SandboxAvailability checkAvailability() {
-        boolean srtAvailable = checkCli("srt");
-        boolean bwrapAvailable = checkCli("bwrap");
-        boolean sandboxExecAvailable = checkCli("sandbox-exec");
+        boolean srtAvailable = srt.isAvailable();
+        String engine = srt.sandboxEngine();
 
         if (!srtAvailable) {
             return new SandboxAvailability(false, false,
-                    "srt CLI not found", null);
+                    "srt CLI not found — install from https://github.com/anthropics/srt", null);
         }
-        return new SandboxAvailability(true,
-                bwrapAvailable || sandboxExecAvailable,
-                null, "srt");
+        return new SandboxAvailability(true, engine != null,
+                null, "srt", engine);
     }
+
+    // ------------------------------------------------------------------
+    // Config generation (delegates to SrtSandbox)
+    // ------------------------------------------------------------------
 
     public Path buildRuntimeConfig(SandboxSettings settings) throws IOException {
-        var network = settings.network();
-        var filesystem = settings.filesystem();
-        Map<String, Object> config = Map.of(
-                "network", Map.of(
-                        "allow_outbound", network.allowedDomains(),
-                        "deny_outbound", network.deniedDomains()),
-                "filesystem", Map.of(
-                        "allow_read", filesystem.allowRead(),
-                        "allow_write", filesystem.allowWrite(),
-                        "deny_read", filesystem.denyRead()));
-
-        Path tmpFile = Files.createTempFile("srt_config_", ".json");
-        MAPPER.writeValue(tmpFile.toFile(), config);
-        return tmpFile;
+        return srt.writeConfigFile(settings);
     }
+
+    // ------------------------------------------------------------------
+    // Command wrapping (delegates to SrtSandbox)
+    // ------------------------------------------------------------------
 
     public String[] wrapCommand(String command, Path configFile) {
-        return new String[]{"srt", "--settings", configFile.toString(), "-c", command};
+        return srt.wrapCommand(command, configFile).toArray(new String[0]);
     }
 
-    private boolean checkCli(String name) {
-        try {
-            Process p = new ProcessBuilder("which", name).start();
-            return p.waitFor() == 0;
-        } catch (Exception e) {
-            return false;
+    // ------------------------------------------------------------------
+    // Execution (delegates to SandboxManager)
+    // ------------------------------------------------------------------
+
+    /**
+     * Execute a command through the sandbox.
+     */
+    public SandboxManager.SandboxExecutionResult execute(String command, String toolName, Path workingDir) {
+        return manager.execute(command, toolName, workingDir);
+    }
+
+    public SandboxManager.SandboxExecutionResult execute(String command, Path workingDir) {
+        return manager.execute(command, workingDir);
+    }
+
+    // ------------------------------------------------------------------
+    // Manager access
+    // ------------------------------------------------------------------
+
+    public SandboxManager manager() {
+        return manager;
+    }
+
+    // ------------------------------------------------------------------
+    // Types
+    // ------------------------------------------------------------------
+
+    public record SandboxAvailability(
+            boolean enabled,
+            boolean available,
+            String reason,
+            String command,
+            String engine
+    ) {
+        public SandboxAvailability(boolean enabled, boolean available, String reason, String command) {
+            this(enabled, available, reason, command, null);
         }
     }
-
-    public record SandboxAvailability(boolean enabled, boolean available, String reason, String command) {}
 }

@@ -9,5 +9,6 @@ public interface CronJobRegistry {
     CronJob getJob(String name);
 
     record CronJob(String id, String cronExpr, String command, boolean enabled,
-                   String timezone, String description, Instant lastRun, Instant nextRun) {}
+                   String timezone, String description, Instant lastRun, Instant nextRun,
+                   String cwd) {}
 }

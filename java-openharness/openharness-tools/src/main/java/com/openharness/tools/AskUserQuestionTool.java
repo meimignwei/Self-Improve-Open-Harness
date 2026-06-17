@@ -1,51 +1,61 @@
 package com.openharness.tools;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.openharness.common.ToolResult;
 import com.openharness.engine.tool.BaseTool;
 import com.openharness.engine.tool.ToolExecutionContext;
 
-import java.util.List;
+import java.util.function.Function;
 
 /**
- * Ask the user one or more questions during execution.
- * Java equivalent of Python's ask_user_question tool.
+ * Tool for asking the interactive user a follow-up question.
+ * Java equivalent of Python's ask_user_question_tool.
+ * <p>
+ * Checks context.metadata() for an "ask_user_prompt" callback (Function&lt;String, String&gt;).
+ * If available, calls it with the question to get user input.
+ * If not available, returns an error indicating user interaction is unavailable.
  */
 public class AskUserQuestionTool extends BaseTool<AskUserQuestionTool.Input> {
 
     public AskUserQuestionTool() {
-        super("ask_user_question", "Ask the user clarifying questions during execution.", Input.class);
+        super("ask_user_question",
+                "Ask the interactive user a follow-up question and return the answer.",
+                Input.class);
     }
 
     @Override
     public ToolResult execute(Input args, ToolExecutionContext ctx) {
-        if (args.questions() == null || args.questions().isEmpty()) {
-            return ToolResult.error("At least one question is required.");
+        Object promptObj = ctx.metadata().get("ask_user_prompt");
+        if (promptObj == null) {
+            return ToolResult.error("ask_user_question is unavailable in this session");
         }
-
-        StringBuilder sb = new StringBuilder("Questions for user:\n\n");
-        for (int i = 0; i < args.questions().size(); i++) {
-            Question q = args.questions().get(i);
-            sb.append(i + 1).append(". ").append(q.question()).append("\n");
-            if (q.options() != null) {
-                for (int j = 0; j < q.options().size(); j++) {
-                    Option opt = q.options().get(j);
-                    sb.append("   [").append(j + 1).append("] ").append(opt.label())
-                            .append(" — ").append(opt.description()).append("\n");
-                }
-            }
-            sb.append("\n");
+        if (!(promptObj instanceof Function<?, ?>)) {
+            return ToolResult.error("ask_user_question is unavailable in this session");
         }
-
-        return ToolResult.success(sb.toString());
+        @SuppressWarnings("unchecked")
+        Function<String, String> prompt = (Function<String, String>) promptObj;
+        String answer = prompt.apply(args.question());
+        if (answer == null) {
+            answer = "";
+        }
+        answer = answer.strip();
+        if (answer.isEmpty()) {
+            return ToolResult.success("(no response)");
+        }
+        return ToolResult.success(answer);
     }
 
-    @Override public boolean isReadOnly(Input args) { return false; }
-
-    public record Input(List<Question> questions, JsonNode metadata) {
-        public Input { if (questions == null) throw new IllegalArgumentException("questions is required"); }
+    @Override
+    public boolean isReadOnly(Input args) {
+        return true;
     }
 
-    public record Question(String question, String header, List<Option> options, boolean multiSelect) {}
-    public record Option(String label, String description) {}
+    /**
+     * Input: a single question to ask the interactive user.
+     * Python equivalent: AskUserQuestionToolInput — single 'question: str' field.
+     */
+    public record Input(String question) {
+        public Input {
+            if (question == null) throw new IllegalArgumentException("question is required");
+        }
+    }
 }

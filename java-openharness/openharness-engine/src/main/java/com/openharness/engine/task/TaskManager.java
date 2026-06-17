@@ -37,8 +37,13 @@ public class TaskManager {
     }
 
     public TaskRecord createShellTask(String command, Path cwd, Map<String, String> env) {
+        return createShellTask(command, command, cwd, env);
+    }
+
+    public TaskRecord createShellTask(String command, String description, Path cwd, Map<String, String> env) {
         String taskId = UUID.randomUUID().toString();
         Path outputFile = baseDir.resolve(taskId + ".output");
+        String desc = (description != null && !description.isEmpty()) ? description : command;
 
         try {
             ProcessBuilder pb = new ProcessBuilder("/bin/bash", "-c", command)
@@ -49,7 +54,7 @@ public class TaskManager {
 
             Process process = pb.start();
             TaskRecord record = new TaskRecord(taskId, TaskType.LOCAL_BASH,
-                    TaskStatus.RUNNING, command, cwd.toString(), outputFile.toString(),
+                    TaskStatus.RUNNING, desc, cwd.toString(), outputFile.toString(),
                     Instant.now(), Instant.now(), null, null,
                     Map.of("process", process));
             tasks.put(taskId, record);
@@ -58,7 +63,7 @@ public class TaskManager {
         } catch (Exception e) {
             LOG.severe("Failed to create shell task: " + e.getMessage());
             TaskRecord record = new TaskRecord(taskId, TaskType.LOCAL_BASH,
-                    TaskStatus.FAILED, command, cwd.toString(), null,
+                    TaskStatus.FAILED, desc, cwd.toString(), null,
                     Instant.now(), Instant.now(), Instant.now(), -1, Map.of());
             tasks.put(taskId, record);
             return record;
@@ -66,13 +71,25 @@ public class TaskManager {
     }
 
     public TaskRecord createAgentTask(String prompt, Path cwd) {
-        return createShellTask("java -jar openharness-app.jar -p " + shellEscape(prompt),
-                cwd, Map.of());
+        return createAgentTask(prompt, prompt, cwd);
     }
 
-    public void stopTask(String taskId) {
+    public TaskRecord createAgentTask(String prompt, String description, Path cwd) {
+        String desc = (description != null && !description.isEmpty()) ? description : prompt;
+        TaskRecord record = createShellTask(
+                "java -jar openharness-app.jar -p " + shellEscape(prompt),
+                desc, cwd, Map.of());
+        return new TaskRecord(record.id(), TaskType.LOCAL_AGENT,
+                record.status(), record.description(), record.cwd(), record.outputFile(),
+                record.createdAt(), record.updatedAt(), record.completedAt(),
+                record.returnCode(), record.metadata());
+    }
+
+    public TaskRecord stopTask(String taskId) {
         TaskRecord record = tasks.get(taskId);
-        if (record == null) return;
+        if (record == null) {
+            throw new IllegalArgumentException("No task found with ID: " + taskId);
+        }
 
         Object processObj = record.metadata().get("process");
         if (processObj instanceof Process p && p.isAlive()) {
@@ -84,7 +101,9 @@ public class TaskManager {
             }
             if (p.isAlive()) p.destroyForcibly();
         }
-        tasks.put(taskId, record.withStatus(TaskStatus.KILLED).withCompletedAt(Instant.now()));
+        TaskRecord updated = record.withStatus(TaskStatus.KILLED).withCompletedAt(Instant.now());
+        tasks.put(taskId, updated);
+        return updated;
     }
 
     public Optional<TaskRecord> getTask(String taskId) {
@@ -95,18 +114,59 @@ public class TaskManager {
         return List.copyOf(tasks.values());
     }
 
+    public List<TaskRecord> listTasks(TaskStatus status) {
+        if (status == null) return listTasks();
+        return tasks.values().stream()
+                .filter(t -> t.status() == status)
+                .toList();
+    }
+
     public String readTaskOutput(String taskId) {
+        return readTaskOutput(taskId, Integer.MAX_VALUE);
+    }
+
+    public String readTaskOutput(String taskId, int maxBytes) {
         TaskRecord record = tasks.get(taskId);
         if (record == null || record.outputFile() == null) return "";
         try {
-            return java.nio.file.Files.readString(Path.of(record.outputFile()));
+            String output = java.nio.file.Files.readString(Path.of(record.outputFile()));
+            if (output.length() > maxBytes) {
+                return output.substring(0, maxBytes);
+            }
+            return output;
         } catch (Exception e) {
             return "";
         }
     }
 
+    public TaskRecord updateTask(String taskId, String description, Integer progress, String statusNote) {
+        TaskRecord task = tasks.get(taskId);
+        if (task == null) {
+            throw new IllegalArgumentException("No task found with ID: " + taskId);
+        }
+        if (description != null) {
+            task = task.withDescription(description);
+        }
+        Map<String, Object> metadata = new HashMap<>(task.metadata());
+        if (progress != null) {
+            metadata.put("progress", progress);
+        }
+        if (statusNote != null) {
+            metadata.put("status_note", statusNote);
+        }
+        TaskRecord updated = new TaskRecord(task.id(), task.type(), task.status(), task.description(),
+                task.cwd(), task.outputFile(), task.createdAt(), Instant.now(),
+                task.completedAt(), task.returnCode(), Collections.unmodifiableMap(metadata));
+        tasks.put(taskId, updated);
+        return updated;
+    }
+
     public void onCompletion(Consumer<TaskRecord> listener) {
         completionListeners.add(listener);
+    }
+
+    public void removeCompletionListener(Consumer<TaskRecord> listener) {
+        completionListeners.remove(listener);
     }
 
     private void monitorProcess(String taskId, Process process, TaskRecord record) {
@@ -150,6 +210,11 @@ public class TaskManager {
         public TaskRecord withReturnCode(int code) {
             return new TaskRecord(id, type, status, description, cwd, outputFile,
                     createdAt, updatedAt, completedAt, code, metadata);
+        }
+
+        public TaskRecord withDescription(String newDescription) {
+            return new TaskRecord(id, type, status, newDescription, cwd, outputFile,
+                    createdAt, Instant.now(), completedAt, returnCode, metadata);
         }
     }
 }

@@ -18,6 +18,8 @@ class McpToolAdapterTest {
             @Override public java.util.List<McpClient.McpResourceInfo> listResources(String serverName) { return java.util.List.of(); }
             @Override public String readResource(String serverName, String uri) { return ""; }
             @Override public String callTool(String serverName, String toolName, com.fasterxml.jackson.databind.JsonNode args) { return "mcp-result"; }
+            @Override public java.util.List<McpClient.McpPromptInfo> listPrompts(String serverName) { return java.util.List.of(); }
+            @Override public String getPrompt(String serverName, String promptName, java.util.Map<String, String> arguments) { return ""; }
             @Override public void disconnect(String serverName) {}
         };
 
@@ -35,11 +37,13 @@ class McpToolAdapterTest {
             @Override public java.util.List<McpClient.McpResourceInfo> listResources(String serverName) { return java.util.List.of(); }
             @Override public String readResource(String serverName, String uri) { return ""; }
             @Override public String callTool(String serverName, String toolName, com.fasterxml.jackson.databind.JsonNode args) { return ""; }
+            @Override public java.util.List<McpClient.McpPromptInfo> listPrompts(String serverName) { return java.util.List.of(); }
+            @Override public String getPrompt(String serverName, String promptName, java.util.Map<String, String> arguments) { return ""; }
             @Override public void disconnect(String serverName) {}
         };
 
         var info = new McpToolInfo("srv", "tool-1", "desc", null);
         var adapter = new McpToolAdapter(client, info);
-        assertEquals("mcp_srv_tool_1", adapter.name());
+        assertEquals("mcp__srv__tool_1", adapter.name());
     }
 }

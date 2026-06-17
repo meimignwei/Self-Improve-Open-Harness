@@ -14,22 +14,33 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Base64;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 /**
  * Convert an image to a text description using a vision-capable model.
+ * Reads vision model config from context.metadata["vision_model_config"].
  */
 public class ImageToTextTool extends BaseTool<ImageToTextTool.Input> {
 
     private static final Logger LOG = Logger.getLogger(ImageToTextTool.class.getName());
     private static final ObjectMapper MAPPER = OpenHarnessObjectMapper.get();
     private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
+
     private static final String DEFAULT_PROMPT =
-            "Describe the image in detail, including any text, objects, people, colors, layout, and context.";
+            "You are an image description assistant. " +
+            "Describe the image in detail, including any text, objects, people, " +
+            "colors, layout, and context. If the image contains code, UI screenshots, " +
+            "diagrams, or data visualizations, describe them precisely so that a " +
+            "text-only AI model can understand the content.";
 
     public ImageToTextTool() {
-        super("image_to_text", "Convert an image to a detailed text description using a vision-capable model.", Input.class);
+        super("image_to_text",
+                "Convert an image to a detailed text description using a vision-capable model. " +
+                "Use this when you need to understand the content of an image but your current " +
+                "model does not support image input.",
+                Input.class);
     }
 
     @Override
@@ -39,28 +50,40 @@ public class ImageToTextTool extends BaseTool<ImageToTextTool.Input> {
         try {
             var resolved = resolveImage(arguments, context);
             if (resolved == null) {
-                return ToolResult.error("Provide either image_data (base64) or image_path.");
+                return ToolResult.error("image_to_text failed: provide either image_data (base64) or image_path");
             }
             imageData = resolved[0];
             mediaType = resolved[1];
         } catch (IOException e) {
-            return ToolResult.error("Failed to read image: " + e.getMessage());
+            return ToolResult.error("image_to_text failed: " + e.getMessage());
         }
 
-        String model = arguments.model() != null ? arguments.model() : "gpt-4o";
-        String apiKey = arguments.apiKey() != null ? arguments.apiKey() : "";
-        String baseUrl = arguments.baseUrl() != null ? arguments.baseUrl() : "https://api.openai.com/v1";
+        // Get vision model config from context metadata
+        Map<String, Object> metadata = context.metadata();
+        Object visionObj = metadata != null ? metadata.get("vision_model_config") : null;
+        @SuppressWarnings("unchecked")
+        Map<String, Object> visionConfig = (visionObj instanceof Map) ? (Map<String, Object>) visionObj : Map.of();
 
-        if (apiKey.isBlank()) {
-            return ToolResult.error("Vision model API key is not configured. Pass api_key or set it in settings.");
+        String model = getString(visionConfig, "model", "");
+        String apiKey = getString(visionConfig, "api_key", "");
+        String baseUrl = getString(visionConfig, "base_url", "");
+
+        if (model.isBlank() || apiKey.isBlank()) {
+            LOG.warning("image_to_text: vision model not configured. Set vision.model and vision.api_key in settings.");
+            return ToolResult.error(
+                    "image_to_text failed: vision model is not configured. " +
+                    "Please set vision.model and vision.api_key in your settings, " +
+                    "or configure the OPENHARNESS_VISION_MODEL and " +
+                    "OPENHARNESS_VISION_API_KEY environment variables.");
         }
 
         try {
-            String description = callVisionModel(imageData, mediaType, arguments.prompt(), model, apiKey, baseUrl, arguments.maxTokens());
+            String description = callVisionModel(imageData, mediaType, arguments.prompt(),
+                    model, apiKey, baseUrl, arguments.maxTokens());
             return ToolResult.success("[Image description via " + model + "]\n\n" + description);
         } catch (Exception e) {
-            LOG.warning("image_to_text failed: " + e.getMessage());
-            return ToolResult.error("Vision model call failed: " + e.getMessage());
+            LOG.warning("image_to_text: vision model call failed: " + e.getMessage());
+            return ToolResult.error("image_to_text failed: vision model error: " + e.getMessage());
         }
     }
 
@@ -74,12 +97,26 @@ public class ImageToTextTool extends BaseTool<ImageToTextTool.Input> {
             return new String[]{arguments.imageData(), arguments.mediaType()};
         }
         if (arguments.imagePath() != null && !arguments.imagePath().isBlank()) {
-            Path path = context.cwd().resolve(arguments.imagePath()).normalize();
-            if (!Files.exists(path)) return null;
-            byte[] raw = Files.readAllBytes(path);
-            String data = Base64.getEncoder().encodeToString(raw);
-            String mt = guessMediaType(path);
-            return new String[]{data, mt};
+            Path path = Path.of(arguments.imagePath());
+            if (!path.isAbsolute()) {
+                path = context.cwd().resolve(path);
+            }
+            path = path.normalize();
+
+            if (!Files.exists(path)) {
+                LOG.warning("image_to_text: image not found at " + path);
+                return null;
+            }
+
+            try {
+                byte[] raw = Files.readAllBytes(path);
+                String data = Base64.getEncoder().encodeToString(raw);
+                String mt = guessMediaType(path);
+                return new String[]{data, mt};
+            } catch (IOException e) {
+                LOG.warning("image_to_text: failed to read " + path + ": " + e.getMessage());
+                return null;
+            }
         }
         return null;
     }
@@ -91,6 +128,7 @@ public class ImageToTextTool extends BaseTool<ImageToTextTool.Input> {
         if (name.endsWith(".gif")) return "image/gif";
         if (name.endsWith(".webp")) return "image/webp";
         if (name.endsWith(".bmp")) return "image/bmp";
+        if (name.endsWith(".svg")) return "image/svg+xml";
         return "image/png";
     }
 
@@ -151,8 +189,14 @@ public class ImageToTextTool extends BaseTool<ImageToTextTool.Input> {
         }
     }
 
+    private static String getString(Map<String, Object> map, String key, String defaultValue) {
+        Object val = map.get(key);
+        if (val instanceof String s && !s.isBlank()) return s;
+        return defaultValue;
+    }
+
     public record Input(String imageData, String imagePath, String prompt,
-                        String mediaType, int maxTokens, String model, String apiKey, String baseUrl) {
+                        String mediaType, int maxTokens) {
         public Input {
             if (prompt == null || prompt.isBlank()) prompt = DEFAULT_PROMPT;
             if (mediaType == null || mediaType.isBlank()) mediaType = "image/png";

@@ -9,10 +9,12 @@ com/openharness/engine/QueryEngine$TurnResult.class
 com/openharness/permissions/PermissionDecision.class
 com/openharness/permissions/PermissionMode.class
 com/openharness/engine/ToolCarryover$1.class
+com/openharness/engine/AutoCompactCallback$CompactResult.class
 com/openharness/engine/QueryEngine.class
 com/openharness/engine/task/TaskManager$TaskStatus.class
 com/openharness/engine/AutoCompactState.class
 com/openharness/engine/CostTracker.class
 com/openharness/engine/task/TaskManager$TaskRecord.class
 com/openharness/permissions/PathRule.class
+com/openharness/engine/AutoCompactCallback.class
 com/openharness/engine/tool/ToolExecutionContext.class

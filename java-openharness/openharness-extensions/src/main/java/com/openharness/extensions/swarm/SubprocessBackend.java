@@ -1,7 +1,6 @@
 package com.openharness.extensions.swarm;
 
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -13,26 +12,40 @@ public class SubprocessBackend implements TeammateBackend {
 
     private final Map<String, Process> processes = new ConcurrentHashMap<>();
     private final Map<String, TeammateStatus> statuses = new ConcurrentHashMap<>();
-    private final Path openharnessBinary;
+    private final String openharnessCommand;
 
-    public SubprocessBackend(Path openharnessBinary) {
-        this.openharnessBinary = openharnessBinary;
+    public SubprocessBackend(String openharnessCommand) {
+        this.openharnessCommand = openharnessCommand;
     }
 
     public SubprocessBackend() {
-        this(Path.of("openharness"));
+        this(SpawnUtils.getTeammateCommand());
     }
 
     @Override
-    public String spawn(TeammateSpec spec) {
+    public String type() {
+        return "subprocess";
+    }
+
+    @Override
+    public boolean isAvailable() {
+        return true;
+    }
+
+    @Override
+    public SpawnResult spawn(TeammateSpec spec) {
+        String agentId = spec.sessionId();
         try {
             Map<String, String> env = SpawnUtils.buildEnv(spec);
             ProcessBuilder pb = new ProcessBuilder(
-                    openharnessBinary.toString(), "agent",
-                    "--id", spec.id(),
-                    "--agent-type", spec.agentType(),
-                    "--model", spec.model() != null ? spec.model() : "claude-sonnet-4-6"
+                    openharnessCommand, "-m", "openharness", "agent",
+                    "--id", agentId,
+                    "--agent-type", spec.name()
             );
+            if (spec.model() != null) {
+                pb.command().add("--model");
+                pb.command().add(spec.model());
+            }
             if (spec.worktreePath() != null) {
                 pb.directory(spec.worktreePath().toFile());
             }
@@ -40,60 +53,61 @@ public class SubprocessBackend implements TeammateBackend {
             pb.redirectErrorStream(true);
 
             Process process = pb.start();
-            processes.put(spec.id(), process);
-            statuses.put(spec.id(), TeammateStatus.running(spec.id(), (int) process.pid()));
+            processes.put(agentId, process);
+            statuses.put(agentId, TeammateStatus.running(agentId, (int) process.pid()));
 
             Thread.startVirtualThread(() -> {
                 try {
                     int exitCode = process.waitFor();
-                    TeammateStatus prev = statuses.get(spec.id());
-                    statuses.put(spec.id(), new TeammateStatus(
-                            spec.id(),
+                    TeammateStatus prev = statuses.get(agentId);
+                    statuses.put(agentId, new TeammateStatus(
+                            agentId,
                             exitCode == 0 ? TeammateStatus.State.COMPLETED : TeammateStatus.State.FAILED,
                             prev != null ? prev.startedAt() : null,
                             java.time.Instant.now(),
                             (int) process.pid(),
                             exitCode));
                 } catch (InterruptedException e) {
-                    statuses.put(spec.id(), new TeammateStatus(
-                            spec.id(), TeammateStatus.State.FAILED,
+                    statuses.put(agentId, new TeammateStatus(
+                            agentId, TeammateStatus.State.FAILED,
                             null, java.time.Instant.now(), -1, -1));
                 }
             });
 
-            return spec.id();
+            return SpawnResult.success("subproc-" + agentId, agentId, type());
         } catch (IOException e) {
-            statuses.put(spec.id(), new TeammateStatus(
-                    spec.id(), TeammateStatus.State.FAILED,
+            statuses.put(agentId, new TeammateStatus(
+                    agentId, TeammateStatus.State.FAILED,
                     null, java.time.Instant.now(), -1, -1));
-            throw new RuntimeException("Failed to spawn teammate: " + spec.id(), e);
+            return SpawnResult.failure("subproc-" + agentId, agentId, type(), e.getMessage());
         }
     }
 
     @Override
-    public void sendMessage(String teammateId, String message) {
-        Process process = processes.get(teammateId);
+    public void sendMessage(String agentId, TeammateMessage message) {
+        Process process = processes.get(agentId);
         if (process != null && process.isAlive()) {
             try {
                 var stdin = process.outputWriter();
-                stdin.write(message);
+                stdin.write(message.text());
                 stdin.write("\n");
                 stdin.flush();
             } catch (IOException e) {
-                throw new RuntimeException("Failed to send message to: " + teammateId, e);
+                throw new RuntimeException("Failed to send message to: " + agentId, e);
             }
         }
     }
 
     @Override
-    public TeammateStatus getStatus(String teammateId) {
-        return statuses.getOrDefault(teammateId, TeammateStatus.unknown(teammateId));
-    }
-
-    @Override
-    public void stop(String teammateId) {
-        Process process = processes.remove(teammateId);
-        if (process != null && process.isAlive()) {
+    public boolean shutdown(String agentId, boolean force) {
+        Process process = processes.remove(agentId);
+        if (process == null || !process.isAlive()) {
+            statuses.remove(agentId);
+            return true;
+        }
+        if (force) {
+            process.destroyForcibly();
+        } else {
             process.destroy();
             try {
                 Thread.sleep(3000);
@@ -104,6 +118,12 @@ public class SubprocessBackend implements TeammateBackend {
                 process.destroyForcibly();
             }
         }
-        statuses.remove(teammateId);
+        statuses.remove(agentId);
+        return true;
+    }
+
+    @Override
+    public TeammateStatus getStatus(String agentId) {
+        return statuses.getOrDefault(agentId, TeammateStatus.unknown(agentId));
     }
 }

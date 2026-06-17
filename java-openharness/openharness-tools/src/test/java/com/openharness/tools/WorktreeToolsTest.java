@@ -13,12 +13,21 @@ class WorktreeToolsTest {
     @Test
     void enterWorktreeRequiresBranch() {
         assertThrows(IllegalArgumentException.class,
-                () -> new WorktreeTools.EnterWorktreeTool.Input(null, null, false));
+                () -> new WorktreeTools.EnterWorktreeTool.Input(null, null, null, null));
+    }
+
+    @Test
+    void enterWorktreeDefaultValues() {
+        var input = new WorktreeTools.EnterWorktreeTool.Input("feature-branch", null, null, null);
+        assertNotNull(input);
+        assertEquals("feature-branch", input.branch());
+        assertTrue(input.createBranch()); // defaults to true
+        assertEquals("HEAD", input.baseRef()); // defaults to HEAD
     }
 
     @Test
     void exitWorktreeDoesNotRequirePath() {
-        var input = new WorktreeTools.ExitWorktreeTool.Input(null, false);
+        var input = new WorktreeTools.ExitWorktreeTool.Input(null);
         assertNotNull(input);
     }
 

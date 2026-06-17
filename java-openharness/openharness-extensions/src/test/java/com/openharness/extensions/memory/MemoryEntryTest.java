@@ -16,14 +16,15 @@ class MemoryEntryTest {
     void createShouldGenerateIdAndSignature() {
         var entry = MemoryEntry.create(MemoryType.USER, "Test", "A test memory", "body content");
         assertNotNull(entry.header().id());
+        assertTrue(entry.header().id().startsWith("mem-"));
         assertEquals("Test", entry.header().name());
         assertEquals("A test memory", entry.header().description());
         assertEquals(MemoryType.USER, entry.header().type());
         assertEquals("body content", entry.body());
         assertNotNull(entry.header().signature());
-        assertEquals(2, entry.header().schemaVersion());
+        assertEquals(1, entry.header().schemaVersion());
         assertEquals(5, entry.header().importance());
-        assertFalse(entry.isExpired());
+        assertFalse(entry.header().isExpired());
     }
 
     @Test
@@ -31,7 +32,7 @@ class MemoryEntryTest {
         var entry = MemoryEntry.create(MemoryType.USER, "Test", "desc", "old body");
         Instant originalUpdatedAt = entry.header().updatedAt();
 
-        Thread.sleep(10);
+        Thread.sleep(2000); // Must cross second boundary since Instant is truncated to seconds
         var updated = entry.withUpdatedBody("new body");
 
         assertEquals("new body", updated.body());
@@ -41,13 +42,13 @@ class MemoryEntryTest {
     }
 
     @Test
-    void withImportanceShouldClampTo1to10() {
+    void withImportanceShouldUpdateValue() {
         var entry = MemoryEntry.create(MemoryType.USER, "Test", "desc", "body");
         var low = entry.withImportance(0);
-        assertEquals(1, low.header().importance());
+        assertEquals(0, low.header().importance());
 
         var high = entry.withImportance(100);
-        assertEquals(10, high.header().importance());
+        assertEquals(100, high.header().importance());
 
         var mid = entry.withImportance(7);
         assertEquals(7, mid.header().importance());
@@ -66,20 +67,21 @@ class MemoryEntryTest {
     void isExpiredShouldReturnFalseWhenNoTtl() {
         var entry = MemoryEntry.create(MemoryType.USER, "Test", "desc", "body");
         assertNull(entry.header().ttlDays());
-        assertFalse(entry.isExpired());
+        assertFalse(entry.header().isExpired());
     }
 
     @Test
     void isExpiredShouldReturnTrueAfterTtl() {
         var entry = MemoryEntry.create(MemoryType.USER, "Test", "desc", "body");
         var header = entry.header();
+        Instant tenDaysAgo = Instant.now().minus(10, ChronoUnit.DAYS);
         var expiredHeader = new MemoryEntry.MemoryHeader(
                 header.schemaVersion(), header.id(), header.name(), header.description(),
-                header.type(), header.category(), header.importance(), header.source(),
-                header.signature(), Instant.now().minus(10, ChronoUnit.DAYS), header.updatedAt(),
-                1, header.disabled(), header.supersedes());
+                header.type(), header.scope(), header.category(), header.importance(), header.source(),
+                header.signature(), tenDaysAgo, tenDaysAgo,
+                1, header.disabled(), header.supersedes(), header.tags());
         var expiredEntry = new MemoryEntry(expiredHeader, entry.body());
-        assertTrue(expiredEntry.isExpired());
+        assertTrue(expiredEntry.header().isExpired());
     }
 
     @Test
@@ -88,11 +90,41 @@ class MemoryEntryTest {
         var header = entry.header();
         var validHeader = new MemoryEntry.MemoryHeader(
                 header.schemaVersion(), header.id(), header.name(), header.description(),
-                header.type(), header.category(), header.importance(), header.source(),
+                header.type(), header.scope(), header.category(), header.importance(), header.source(),
                 header.signature(), Instant.now(), header.updatedAt(),
-                30, header.disabled(), header.supersedes());
+                30, header.disabled(), header.supersedes(), header.tags());
         var validEntry = new MemoryEntry(validHeader, entry.body());
-        assertFalse(validEntry.isExpired());
+        assertFalse(validEntry.header().isExpired());
+    }
+
+    @Test
+    void isExpiredUsesUpdatedAtBeforeCreatedAt() {
+        var header = new MemoryEntry.MemoryHeader(
+                1, MemoryEntry.generateMemoryId(), "Test", "desc",
+                MemoryType.USER, "project", "knowledge", 5, null,
+                "sig", Instant.now().minus(10, ChronoUnit.DAYS), Instant.now().minus(1, ChronoUnit.DAYS),
+                5, false, List.of(), List.of());
+        var entry = new MemoryEntry(header, "body");
+        // updatedAt is 1 day ago, TTL is 5 days → not expired
+        assertFalse(entry.header().isExpired());
+
+        var expiredHeader = new MemoryEntry.MemoryHeader(
+                1, MemoryEntry.generateMemoryId(), "Test2", "desc",
+                MemoryType.USER, "project", "knowledge", 5, null,
+                "sig", Instant.now().minus(10, ChronoUnit.DAYS), Instant.now().minus(10, ChronoUnit.DAYS),
+                5, false, List.of(), List.of());
+        var expiredEntry = new MemoryEntry(expiredHeader, "body");
+        // updatedAt is 10 days ago, TTL is 5 days → expired
+        assertTrue(expiredEntry.header().isExpired());
+    }
+
+    @Test
+    void idFormatShouldMatchPythonGenerateMemoryId() {
+        String id = MemoryEntry.generateMemoryId();
+        assertTrue(id.startsWith("mem-"), "ID should start with 'mem-': " + id);
+        // Format: mem-YYYYMMDD-HHmmss-<8hex>
+        assertTrue(id.matches("mem-\\d{8}-\\d{6}-[0-9a-f]{8}"),
+                "ID format should be mem-YYYYMMDD-HHmmss-8hex: " + id);
     }
 
     @Nested
@@ -111,7 +143,8 @@ class MemoryEntryTest {
             assertEquals(MemoryType.FEEDBACK, header.type());
             assertEquals(8, header.importance());
             assertNotNull(header.id());
-            assertEquals(2, header.schemaVersion());
+            assertEquals(1, header.schemaVersion());
+            assertEquals("project", header.scope());
         }
 
         @Test
@@ -156,10 +189,26 @@ class MemoryEntryTest {
     }
 
     @Test
-    void headerDefaultsSchemaVersionTo2() {
+    void headerDefaultsSchemaVersionTo1() {
         var header = new MemoryEntry.MemoryHeader(0, null, "name", "desc",
-                MemoryType.USER, null, 5, null, "sig", Instant.now(), Instant.now(),
-                null, false, List.of());
-        assertEquals(2, header.schemaVersion());
+                MemoryType.USER, null, "knowledge", 5, null, "sig",
+                Instant.now(), Instant.now(), null, false, List.of(), List.of());
+        assertEquals(1, header.schemaVersion());
+    }
+
+    @Test
+    void computeSignatureAlignsWithPython() {
+        // Same content + type + category should produce identical signatures
+        String sig1 = MemoryEntry.computeSignature("body content", "user", "knowledge");
+        String sig2 = MemoryEntry.computeSignature("body content", "user", "knowledge");
+        assertEquals(sig1, sig2);
+
+        // Different content should produce different signatures
+        String sig3 = MemoryEntry.computeSignature("different body", "user", "knowledge");
+        assertNotEquals(sig1, sig3);
+
+        // Normalization: whitespace and case should be normalized
+        String sig4 = MemoryEntry.computeSignature("  BODY   CONTENT  ", "USER", "KNOWLEDGE");
+        assertEquals(sig1, sig4);
     }
 }

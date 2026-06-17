@@ -10,7 +10,11 @@ public sealed interface ContentBlock
 
     record TextBlock(String text) implements ContentBlock {}
 
-    record ImageBlock(String mediaType, String base64Data) implements ContentBlock {}
+    record ImageBlock(String mediaType, String base64Data, String sourcePath) implements ContentBlock {
+        public ImageBlock(String mediaType, String base64Data) {
+            this(mediaType, base64Data, "");
+        }
+    }
 
     record ToolUseBlock(String id, String name, com.fasterxml.jackson.databind.JsonNode input)
             implements ContentBlock {}

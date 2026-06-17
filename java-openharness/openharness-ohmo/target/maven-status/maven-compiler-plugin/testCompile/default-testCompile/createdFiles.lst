@@ -1,0 +1,7 @@
+com/openharness/ohmo/OhmoSessionRuntimePoolTest.class
+com/openharness/ohmo/OhmoSessionBackendTest.class
+com/openharness/ohmo/RuntimeBundleTest.class
+com/openharness/ohmo/WorkspaceManagerTest.class
+com/openharness/ohmo/GatewayConfigTest.class
+com/openharness/ohmo/OhmoGatewayBridgeTest.class
+com/openharness/ohmo/GroupRegistryTest.class

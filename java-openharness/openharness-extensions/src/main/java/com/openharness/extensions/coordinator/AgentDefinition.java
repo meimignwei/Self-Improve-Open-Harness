@@ -27,6 +27,7 @@ public record AgentDefinition(
         String initialPrompt,
         String memory,
         String isolation,
+        List<String> permissions,
         boolean omitClaudeMd,
         String criticalSystemReminder,
         String subagentType,
@@ -41,6 +42,7 @@ public record AgentDefinition(
         skills = skills != null ? List.copyOf(skills) : List.of();
         mcpServers = mcpServers != null ? List.copyOf(mcpServers) : List.of();
         requiredMcpServers = requiredMcpServers != null ? List.copyOf(requiredMcpServers) : List.of();
+        permissions = permissions != null ? List.copyOf(permissions) : List.of();
         source = source != null ? source : "builtin";
     }
 }

@@ -29,31 +29,76 @@ public class QueryEngine implements AgentRuntime {
     private final PermissionChecker permissionChecker;
     private final CostTracker costTracker;
     private final AutoCompactState autoCompactState;
+    private final AutoCompactCallback autoCompactCallback;
     private final ToolCarryover toolCarryover;
     private final java.util.function.BiFunction<String, String, Boolean> confirmCallback;
+    /** Callback invoked after each turn for auto memory extraction. */
+    private final java.util.function.Consumer<List<ConversationMessage>> afterTurnCallback;
+    /** Callback to prune expired memories. */
+    private final Runnable memoryPruner;
+    /** Callback invoked at end of executeLoop for session checkpoint (Level 2 compaction). */
+    private final java.util.function.Consumer<List<ConversationMessage>> sessionEndCallback;
 
     public QueryEngine(StreamingApiClient apiClient, ToolRegistry toolRegistry,
                        PermissionChecker permissionChecker) {
-        this(apiClient, toolRegistry, permissionChecker, new CostTracker(), null, null, null);
+        this(apiClient, toolRegistry, permissionChecker, new CostTracker(), null, null, null, null);
     }
 
     public QueryEngine(StreamingApiClient apiClient, ToolRegistry toolRegistry,
                        PermissionChecker permissionChecker, CostTracker costTracker,
                        AutoCompactState autoCompactState, ToolCarryover toolCarryover) {
-        this(apiClient, toolRegistry, permissionChecker, costTracker, autoCompactState, toolCarryover, null);
+        this(apiClient, toolRegistry, permissionChecker, costTracker, autoCompactState,
+                null, toolCarryover, null);
     }
 
     public QueryEngine(StreamingApiClient apiClient, ToolRegistry toolRegistry,
                        PermissionChecker permissionChecker, CostTracker costTracker,
                        AutoCompactState autoCompactState, ToolCarryover toolCarryover,
                        java.util.function.BiFunction<String, String, Boolean> confirmCallback) {
+        this(apiClient, toolRegistry, permissionChecker, costTracker, autoCompactState,
+                null, toolCarryover, confirmCallback);
+    }
+
+    public QueryEngine(StreamingApiClient apiClient, ToolRegistry toolRegistry,
+                       PermissionChecker permissionChecker, CostTracker costTracker,
+                       AutoCompactState autoCompactState,
+                       AutoCompactCallback autoCompactCallback,
+                       ToolCarryover toolCarryover,
+                       java.util.function.BiFunction<String, String, Boolean> confirmCallback) {
+        this(apiClient, toolRegistry, permissionChecker, costTracker, autoCompactState,
+                autoCompactCallback, toolCarryover, confirmCallback, null, null, null);
+    }
+
+    public QueryEngine(StreamingApiClient apiClient, ToolRegistry toolRegistry,
+                       PermissionChecker permissionChecker, CostTracker costTracker,
+                       AutoCompactState autoCompactState, ToolCarryover toolCarryover,
+                       java.util.function.BiFunction<String, String, Boolean> confirmCallback,
+                       java.util.function.Consumer<List<ConversationMessage>> afterTurnCallback,
+                       java.util.function.Function<List<ConversationMessage>, List<ConversationMessage>> compactFn) {
+        this(apiClient, toolRegistry, permissionChecker, costTracker, autoCompactState,
+                null, toolCarryover, confirmCallback, afterTurnCallback, null, null);
+    }
+
+    public QueryEngine(StreamingApiClient apiClient, ToolRegistry toolRegistry,
+                       PermissionChecker permissionChecker, CostTracker costTracker,
+                       AutoCompactState autoCompactState,
+                       AutoCompactCallback autoCompactCallback,
+                       ToolCarryover toolCarryover,
+                       java.util.function.BiFunction<String, String, Boolean> confirmCallback,
+                       java.util.function.Consumer<List<ConversationMessage>> afterTurnCallback,
+                       Runnable memoryPruner,
+                       java.util.function.Consumer<List<ConversationMessage>> sessionEndCallback) {
         this.apiClient = apiClient;
         this.toolRegistry = toolRegistry;
         this.permissionChecker = permissionChecker;
         this.costTracker = costTracker;
         this.autoCompactState = autoCompactState;
+        this.autoCompactCallback = autoCompactCallback;
         this.toolCarryover = toolCarryover;
         this.confirmCallback = confirmCallback;
+        this.afterTurnCallback = afterTurnCallback;
+        this.memoryPruner = memoryPruner;
+        this.sessionEndCallback = sessionEndCallback;
     }
 
     @Override
@@ -73,6 +118,42 @@ public class QueryEngine implements AgentRuntime {
         return publisher;
     }
 
+    @Override
+    public String compact() {
+        StringBuilder result = new StringBuilder();
+        int actions = 0;
+
+        if (toolCarryover != null) {
+            int before = toolCarryover.size();
+            toolCarryover.compact();
+            int after = toolCarryover.size();
+            if (before != after) {
+                result.append("Tool carryover: ").append(before)
+                        .append(" -> ").append(after).append(" items. ");
+                actions++;
+            }
+        }
+
+        if (memoryPruner != null) {
+            try {
+                memoryPruner.run();
+                result.append("Memories pruned. ");
+                actions++;
+            } catch (Exception e) {
+                // best-effort
+            }
+        }
+
+        if (autoCompactState != null) {
+            autoCompactState.resetFailures();
+            result.append("Compaction state reset. ");
+            actions++;
+        }
+
+        return actions > 0 ? result.toString().strip()
+                : "Nothing to compact.";
+    }
+
     private void executeLoop(List<ConversationMessage> messages, QueryOptions options,
                               SubmissionPublisher<StreamEvent> publisher) {
         int maxTurns = options.maxTurns().orElse(10);
@@ -82,16 +163,25 @@ public class QueryEngine implements AgentRuntime {
                 .map(Path::of)
                 .orElse(Path.of("").toAbsolutePath());
 
-        // Inject carryover context into system prompt
         String carryoverSnippet = toolCarryover != null ? toolCarryover.buildPromptSnippet() : "";
         String systemPrompt = (baseSystemPrompt != null ? baseSystemPrompt : "")
                 + carryoverSnippet;
         if (systemPrompt.isBlank()) systemPrompt = null;
 
         List<ConversationMessage> conversation = new ArrayList<>(messages);
-        List<ToolDefinition> toolDefs = buildToolDefinitions();
+        List<ToolDefinition> toolDefs = buildToolDefinitions(options.allowedTools().orElse(null));
 
         for (int turn = 0; turn < maxTurns; turn++) {
+            // Auto-compaction check — matching Python's auto_compact_if_needed()
+            if (autoCompactCallback != null && autoCompactState != null) {
+                var compactResult = autoCompactCallback.apply(conversation, model);
+                if (compactResult.wasCompacted()) {
+                    conversation = compactResult.messages();
+                    publisher.submit(new StreamEvent.StatusEvent(
+                            "Auto-compaction complete", StreamEvent.StatusLevel.INFO));
+                }
+            }
+
             StreamOptions streamOpts = StreamOptions.defaults()
                     .withSystemPrompt(systemPrompt);
 
@@ -109,13 +199,6 @@ public class QueryEngine implements AgentRuntime {
                 costTracker.add(result.usage(), model);
             }
 
-            // Auto-compaction check
-            if (autoCompactState != null && autoCompactState.shouldCompact(result.usage())) {
-                conversation = autoCompactState.compact(conversation);
-                publisher.submit(new StreamEvent.StatusEvent(
-                        "Auto-compaction triggered", StreamEvent.StatusLevel.INFO));
-            }
-
             List<ContentBlock> responseBlocks = result.blocks();
             if (responseBlocks.isEmpty()) {
                 publisher.submit(new StreamEvent.ErrorStreamEvent("Empty response from LLM"));
@@ -128,6 +211,7 @@ public class QueryEngine implements AgentRuntime {
 
             if (toolUses.isEmpty()) {
                 publisher.submit(new StreamEvent.AssistantTurnComplete(result.usage()));
+                saveSessionCheckpoint(conversation);
                 return;
             }
 
@@ -138,13 +222,27 @@ public class QueryEngine implements AgentRuntime {
             List<ContentBlock> toolResults = executeTools(toolUses, cwd, publisher);
             conversation.add(new ConversationMessage(Role.USER, toolResults));
 
+            // Auto-extract durable memories from the turn
+            extractMemories(conversation);
+
             publisher.submit(new StreamEvent.StatusEvent(
                     "Turn " + (turn + 1) + " complete, " + toolUses.size() + " tool(s) executed",
                     StreamEvent.StatusLevel.INFO));
         }
 
+        saveSessionCheckpoint(conversation);
         publisher.submit(new StreamEvent.ErrorStreamEvent(
                 "Max turns (" + maxTurns + ") exceeded"));
+    }
+
+    private void saveSessionCheckpoint(List<ConversationMessage> conversation) {
+        if (sessionEndCallback != null) {
+            try {
+                sessionEndCallback.accept(conversation);
+            } catch (Exception e) {
+                // Best-effort
+            }
+        }
     }
 
     /**
@@ -207,7 +305,6 @@ public class QueryEngine implements AgentRuntime {
                     continue;
                 }
 
-                // Permission check
                 boolean isReadOnly = tool.isReadOnly(null);
                 String filePath = extractFilePath(input);
                 String command = extractCommand(input);
@@ -226,7 +323,6 @@ public class QueryEngine implements AgentRuntime {
                                 ToolResult.error(msg)));
                         continue;
                     }
-                    // approved - fall through to execution
                 } else if (!decision.allowed()) {
                     results.add(new ContentBlock.ToolResultBlock(id, decision.reason(), true));
                     publisher.submit(new StreamEvent.ToolCompleted(name, id,
@@ -234,7 +330,6 @@ public class QueryEngine implements AgentRuntime {
                     continue;
                 }
 
-                // Execute tool
                 try {
                     ToolResult result = executeSingleTool(tool, input, cwd);
                     results.add(new ContentBlock.ToolResultBlock(id,
@@ -274,8 +369,12 @@ public class QueryEngine implements AgentRuntime {
         }
     }
 
-    private List<ToolDefinition> buildToolDefinitions() {
-        return toolRegistry.listTools().stream()
+    private List<ToolDefinition> buildToolDefinitions(List<String> allowedTools) {
+        var tools = toolRegistry.listTools().stream();
+        if (allowedTools != null && !allowedTools.isEmpty()) {
+            tools = tools.filter(t -> allowedTools.contains(t.name()));
+        }
+        return tools
                 .map(tool -> {
                     JsonNode schema = tool.inputSchema();
                     Map<String, JsonNode> schemaMap = new HashMap<>();
@@ -291,6 +390,16 @@ public class QueryEngine implements AgentRuntime {
         if (!textBuilder.isEmpty()) {
             blocks.add(new ContentBlock.TextBlock(textBuilder.toString()));
             textBuilder.setLength(0);
+        }
+    }
+
+    private void extractMemories(List<ConversationMessage> conversation) {
+        if (afterTurnCallback != null) {
+            try {
+                afterTurnCallback.accept(conversation);
+            } catch (Exception e) {
+                // Silent — memory extraction is best-effort
+            }
         }
     }
 

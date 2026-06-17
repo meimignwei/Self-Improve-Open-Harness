@@ -102,7 +102,7 @@ class MemoryFileStoreTest {
     @Test
     void parseMarkdownShouldHandleFrontmatterAndBody() {
         var entry = MemoryEntry.create(MemoryType.USER, "Parsed", "desc", "markdown body");
-        String serialized = store.serializeToMarkdown(entry);
+        String serialized = store.renderMemoryFile(entry);
         MemoryEntry parsed = store.parseMarkdown(serialized);
 
         assertEquals(entry.header().name(), parsed.header().name());
@@ -123,7 +123,7 @@ class MemoryFileStoreTest {
     }
 
     @Test
-    void serializeToMarkdownShouldIncludeAllFields() {
+    void renderMemoryFileShouldIncludeAllFields() {
         var entry = MemoryEntry.create(MemoryType.PROJECT, "Full", "Full desc", "body");
         var withTtl = new MemoryEntry(
                 MemoryEntry.MemoryHeader.builder()
@@ -139,10 +139,13 @@ class MemoryFileStoreTest {
                         .build(),
                 entry.body());
 
-        String serialized = store.serializeToMarkdown(withTtl);
-        assertTrue(serialized.contains("category: deployment"));
-        assertTrue(serialized.contains("importance: 8"));
-        assertTrue(serialized.contains("ttl_days: 30"));
+        String serialized = store.renderMemoryFile(withTtl);
+        assertTrue(serialized.contains("category: \"deployment\""),
+                "Expected category field in output: " + serialized);
+        assertTrue(serialized.contains("importance: 8"),
+                "Expected importance field in output: " + serialized);
+        assertTrue(serialized.contains("ttl_days: 30"),
+                "Expected ttl_days field in output: " + serialized);
     }
 
     @Test

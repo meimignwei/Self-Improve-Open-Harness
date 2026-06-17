@@ -5,8 +5,6 @@ import com.openharness.engine.task.TaskManager;
 import com.openharness.engine.tool.BaseTool;
 import com.openharness.engine.tool.ToolExecutionContext;
 
-import java.nio.file.Path;
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -24,57 +22,81 @@ public final class TaskTools {
         private final TaskManager taskManager;
 
         public TaskCreateTool(TaskManager taskManager) {
-            super("task_create", "Create a background shell or agent task.", Input.class);
+            super("task_create", "Create a background shell or local-agent task.", Input.class);
             this.taskManager = taskManager;
         }
 
         @Override
         public ToolResult execute(Input args, ToolExecutionContext ctx) {
-            Path cwd = args.cwd() != null ? Path.of(args.cwd()) : ctx.cwd();
-            TaskManager.TaskRecord record;
-            if ("agent".equals(args.type())) {
-                record = taskManager.createAgentTask(args.prompt(), cwd);
+            String type = args.type() != null ? args.type() : "local_bash";
+
+            if ("local_bash".equals(type)) {
+                if (args.command() == null || args.command().isBlank()) {
+                    return ToolResult.error("command is required for local_bash tasks");
+                }
+                TaskManager.TaskRecord record = taskManager.createShellTask(
+                        args.command(), args.description(), ctx.cwd(), Map.of());
+                return ToolResult.success("Created task " + record.id() + " (" + record.type() + ")");
+            } else if ("local_agent".equals(type) || "subagent".equals(type)) {
+                if (args.prompt() == null || args.prompt().isBlank()) {
+                    return ToolResult.error("prompt is required for local_agent tasks");
+                }
+                try {
+                    TaskManager.TaskRecord record = taskManager.createAgentTask(
+                            args.prompt(), args.description(), ctx.cwd());
+                    return ToolResult.success("Created task " + record.id() + " (" + record.type() + ")");
+                } catch (Exception e) {
+                    return ToolResult.error(e.getMessage());
+                }
             } else {
-                record = taskManager.createShellTask(args.command(), cwd, Map.of());
+                return ToolResult.error("unsupported task type: " + type);
             }
-            return ToolResult.success("Task created: " + record.id() + " (" + record.type() + ")");
         }
 
         @Override
         public boolean isReadOnly(Input arguments) { return false; }
 
-        public record Input(String command, String prompt, String type, String cwd) {}
+        public record Input(String type, String description, String command, String prompt) {}
     }
 
     // --- TaskListTool ---
 
-    public static class TaskListTool extends BaseTool<Void> {
+    public static class TaskListTool extends BaseTool<TaskListTool.Input> {
         private final TaskManager taskManager;
 
         public TaskListTool(TaskManager taskManager) {
-            super("task_list", "List all background tasks.", Void.class);
+            super("task_list", "List background tasks.", Input.class);
             this.taskManager = taskManager;
         }
 
         @Override
-        public ToolResult execute(Void args, ToolExecutionContext ctx) {
-            List<TaskManager.TaskRecord> tasks = taskManager.listTasks();
-            if (tasks.isEmpty()) return ToolResult.success("No active tasks.");
+        public ToolResult execute(Input args, ToolExecutionContext ctx) {
+            List<TaskManager.TaskRecord> tasks;
+            if (args.status() != null) {
+                try {
+                    TaskManager.TaskStatus status = TaskManager.TaskStatus.valueOf(args.status().toUpperCase());
+                    tasks = taskManager.listTasks(status);
+                } catch (IllegalArgumentException e) {
+                    return ToolResult.error("Invalid status filter: " + args.status());
+                }
+            } else {
+                tasks = taskManager.listTasks();
+            }
+            if (tasks.isEmpty()) {
+                return ToolResult.success("(no tasks)");
+            }
             StringBuilder sb = new StringBuilder();
             for (TaskManager.TaskRecord t : tasks) {
-                sb.append(t.id().substring(0, 8)).append("  ")
-                        .append(t.status()).append("  ")
-                        .append(t.type()).append("  ")
-                        .append(t.description().length() > 60
-                                ? t.description().substring(0, 57) + "..."
-                                : t.description())
-                        .append("\n");
+                sb.append(t.id()).append(" ").append(t.type()).append(" ")
+                        .append(t.status()).append(" ").append(t.description()).append("\n");
             }
             return ToolResult.success(sb.toString().stripTrailing());
         }
 
         @Override
-        public boolean isReadOnly(Void arguments) { return true; }
+        public boolean isReadOnly(Input arguments) { return true; }
+
+        public record Input(String status) {}
     }
 
     // --- TaskGetTool ---
@@ -83,7 +105,7 @@ public final class TaskTools {
         private final TaskManager taskManager;
 
         public TaskGetTool(TaskManager taskManager) {
-            super("task_get", "Get details of a specific task.", Input.class);
+            super("task_get", "Get details for a background task.", Input.class);
             this.taskManager = taskManager;
         }
 
@@ -91,14 +113,8 @@ public final class TaskTools {
         public ToolResult execute(Input args, ToolExecutionContext ctx) {
             return taskManager.getTask(args.taskId())
                     .map(t -> ToolResult.success(
-                            "ID: " + t.id() + "\n" +
-                            "Type: " + t.type() + "\n" +
-                            "Status: " + t.status() + "\n" +
-                            "Created: " + t.createdAt() + "\n" +
-                            (t.completedAt() != null ? "Completed: " + t.completedAt() + "\n" : "") +
-                            (t.returnCode() != null ? "Exit code: " + t.returnCode() + "\n" : "") +
-                            "Command: " + t.description()))
-                    .orElse(ToolResult.error("Task not found: " + args.taskId()));
+                            t.id() + "\t" + t.type() + "\t" + t.status() + "\t" + t.description()))
+                    .orElse(ToolResult.error("No task found with ID: " + args.taskId()));
         }
 
         @Override
@@ -113,23 +129,32 @@ public final class TaskTools {
         private final TaskManager taskManager;
 
         public TaskOutputTool(TaskManager taskManager) {
-            super("task_output", "Read output from a running or completed task.", Input.class);
+            super("task_output", "Read the output log for a background task.", Input.class);
             this.taskManager = taskManager;
         }
 
         @Override
         public ToolResult execute(Input args, ToolExecutionContext ctx) {
-            String output = taskManager.readTaskOutput(args.taskId());
-            if (output.isEmpty()) {
-                return ToolResult.error("No output for task: " + args.taskId());
+            try {
+                String output = taskManager.readTaskOutput(args.taskId(), args.maxBytes());
+                return ToolResult.success(output != null && !output.isEmpty() ? output : "(no output)");
+            } catch (Exception e) {
+                return ToolResult.error(e.getMessage());
             }
-            return ToolResult.success(output);
         }
 
         @Override
         public boolean isReadOnly(Input arguments) { return true; }
 
-        public record Input(String taskId) {}
+        public record Input(String taskId, int maxBytes) {
+            public Input {
+                if (maxBytes < 1) maxBytes = 12000;
+                if (maxBytes > 100000) maxBytes = 100000;
+            }
+            public Input(String taskId) {
+                this(taskId, 12000);
+            }
+        }
     }
 
     // --- TaskStopTool ---
@@ -138,14 +163,18 @@ public final class TaskTools {
         private final TaskManager taskManager;
 
         public TaskStopTool(TaskManager taskManager) {
-            super("task_stop", "Stop a running background task.", Input.class);
+            super("task_stop", "Stop a background task.", Input.class);
             this.taskManager = taskManager;
         }
 
         @Override
         public ToolResult execute(Input args, ToolExecutionContext ctx) {
-            taskManager.stopTask(args.taskId());
-            return ToolResult.success("Task stopped: " + args.taskId());
+            try {
+                TaskManager.TaskRecord task = taskManager.stopTask(args.taskId());
+                return ToolResult.success("Stopped task " + task.id());
+            } catch (Exception e) {
+                return ToolResult.error(e.getMessage());
+            }
         }
 
         @Override
@@ -160,20 +189,43 @@ public final class TaskTools {
         private final TaskManager taskManager;
 
         public TaskUpdateTool(TaskManager taskManager) {
-            super("task_update", "Update a task's metadata.", Input.class);
+            super("task_update", "Update a task description, progress, or status note.", Input.class);
             this.taskManager = taskManager;
         }
 
         @Override
         public ToolResult execute(Input args, ToolExecutionContext ctx) {
-            var opt = taskManager.getTask(args.taskId());
-            if (opt.isEmpty()) return ToolResult.error("Task not found: " + args.taskId());
-            return ToolResult.success("Task updated: " + args.taskId());
+            try {
+                TaskManager.TaskRecord task = taskManager.updateTask(
+                        args.taskId(), args.description(), args.progress(), args.statusNote());
+
+                StringBuilder sb = new StringBuilder("Updated task ").append(task.id());
+                if (args.description() != null) {
+                    sb.append(" description=").append(task.description());
+                }
+                if (args.progress() != null) {
+                    Object progress = task.metadata().get("progress");
+                    sb.append(" progress=").append(progress != null ? progress : "").append("%");
+                }
+                if (args.statusNote() != null) {
+                    Object note = task.metadata().get("status_note");
+                    sb.append(" note=").append(note != null ? note : "");
+                }
+                return ToolResult.success(sb.toString());
+            } catch (Exception e) {
+                return ToolResult.error(e.getMessage());
+            }
         }
 
         @Override
         public boolean isReadOnly(Input arguments) { return false; }
 
-        public record Input(String taskId, String status) {}
+        public record Input(String taskId, String description, Integer progress, String statusNote) {
+            public Input {
+                if (progress != null && (progress < 0 || progress > 100)) {
+                    throw new IllegalArgumentException("progress must be between 0 and 100");
+                }
+            }
+        }
     }
 }

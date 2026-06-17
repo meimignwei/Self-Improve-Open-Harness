@@ -56,8 +56,36 @@ public class WorkspaceManager {
         results.put("identity", Files.exists(root.resolve("identity.md")));
         results.put("memory_dir", Files.exists(root.resolve("memory")));
         results.put("gateway_config", Files.exists(root.resolve("gateway.json")));
+        results.put("sessions_dir", Files.exists(root.resolve("sessions")));
+        results.put("skills_dir", Files.exists(root.resolve("skills")));
+        results.put("plugins_dir", Files.exists(root.resolve("plugins")));
+        results.put("groups_dir", Files.exists(root.resolve("groups")));
         return results;
     }
+
+    // ------------------------------------------------------------------
+    // Path helpers matching Python ohmo/workspace.py
+    // ------------------------------------------------------------------
+
+    public Path getMemoryDir(Path root) { return root.resolve("memory"); }
+    public Path getSessionsDir(Path root) { return root.resolve("sessions"); }
+    public Path getSkillsDir(Path root) { return root.resolve("skills"); }
+    public Path getPluginsDir(Path root) { return root.resolve("plugins"); }
+    public Path getGroupsDir(Path root) { return root.resolve("groups"); }
+    public Path getLogsDir(Path root) { return root.resolve("logs"); }
+    public Path getAttachmentsDir(Path root) { return root.resolve("attachments"); }
+    public Path getSoulPath(Path root) { return root.resolve("soul.md"); }
+    public Path getUserPath(Path root) { return root.resolve("user.md"); }
+    public Path getIdentityPath(Path root) { return root.resolve("identity.md"); }
+    public Path getStatePath(Path root) { return root.resolve("state.json"); }
+    public Path getGatewayConfigPath(Path root) { return root.resolve("gateway.json"); }
+    public Path getGatewayPidPath(Path root) { return root.resolve("gateway.pid"); }
+    public Path getGatewayRestartNoticePath(Path root) { return root.resolve("gateway_restart_notice.json"); }
+    public Path getBootstrapPath(Path root) { return root.resolve("BOOTSTRAP.md"); }
+
+    // ------------------------------------------------------------------
+    // Internal helpers
+    // ------------------------------------------------------------------
 
     private void mkdir(Path parent, String name) throws IOException {
         Files.createDirectories(parent.resolve(name));

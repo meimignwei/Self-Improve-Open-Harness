@@ -5,9 +5,9 @@ import com.openharness.common.ToolResult;
 import com.openharness.engine.tool.BaseTool;
 import com.openharness.engine.tool.ToolExecutionContext;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -18,7 +18,7 @@ public class RemoteTriggerTool extends BaseTool<RemoteTriggerTool.Input> {
     private final CronJobRegistry cronRegistry;
 
     public RemoteTriggerTool(CronJobRegistry cronRegistry) {
-        super("remote_trigger", "Trigger a named cron job by looking it up in the registry and executing its command.", Input.class);
+        super("remote_trigger", "Trigger a configured local cron-style job immediately.", Input.class);
         this.cronRegistry = cronRegistry;
     }
 
@@ -34,36 +34,58 @@ public class RemoteTriggerTool extends BaseTool<RemoteTriggerTool.Input> {
             return ToolResult.error("Cron job has no command: " + arguments.name());
         }
 
-        Path cwd = context.cwd();
+        // Use job's configured cwd if available, fall back to context.cwd()
+        Path cwd;
+        String jobCwd = job.cwd();
+        if (jobCwd != null && !jobCwd.isBlank()) {
+            cwd = Path.of(jobCwd.replaceFirst("^~", System.getProperty("user.home")));
+        } else {
+            cwd = context.cwd();
+        }
+
         int timeout = arguments.timeoutSeconds();
         if (timeout <= 0 || timeout > 600) timeout = 120;
 
         try {
             ProcessBuilder pb = new ProcessBuilder("bash", "-c", command);
             pb.directory(cwd.toFile());
-            pb.redirectErrorStream(true);
             Process process = pb.start();
 
             boolean finished = process.waitFor(timeout, TimeUnit.SECONDS);
             if (!finished) {
                 process.destroyForcibly();
+                process.waitFor(2, TimeUnit.SECONDS);
                 return ToolResult.error("Remote trigger timed out after " + timeout + " seconds");
             }
 
-            StringBuilder output = new StringBuilder();
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    output.append(line).append("\n");
-                }
-            }
+            String stdout = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            String stderr = new String(process.getErrorStream().readAllBytes(), StandardCharsets.UTF_8);
 
             int exitCode = process.exitValue();
-            String stdout = output.toString().stripTrailing();
-            if (exitCode != 0) {
-                return ToolResult.error("Exit code " + exitCode + "\n" + stdout);
+
+            // Build output: "Triggered {name}\n{stdout}" with stderr appended separately
+            String stdoutClean = stdout.replace("\r\n", "\n").stripTrailing();
+            String stderrClean = stderr.replace("\r\n", "\n").stripTrailing();
+
+            StringBuilder sb = new StringBuilder();
+            sb.append("Triggered ").append(arguments.name());
+            boolean hasOutput = false;
+
+            if (!stdoutClean.isEmpty()) {
+                sb.append("\n").append(stdoutClean);
+                hasOutput = true;
             }
-            return ToolResult.success("Triggered '" + arguments.name() + "' (exit " + exitCode + "):\n" + stdout);
+            if (!stderrClean.isEmpty()) {
+                sb.append("\n(stderr) ").append(stderrClean);
+                hasOutput = true;
+            }
+            if (!hasOutput) {
+                sb.append("\n(no output)");
+            }
+
+            return new ToolResult(sb.toString(), exitCode != 0,
+                    Map.of("returncode", exitCode));
+
         } catch (Exception e) {
             return ToolResult.error("Remote trigger failed: " + e.getMessage());
         }

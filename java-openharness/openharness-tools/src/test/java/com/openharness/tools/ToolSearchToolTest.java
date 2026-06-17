@@ -32,7 +32,7 @@ class ToolSearchToolTest {
         registry.register(new BriefTool());
 
         var tool = new ToolSearchTool(registry);
-        ToolResult result = tool.execute(new ToolSearchTool.Input("truncate"),
+        ToolResult result = tool.execute(new ToolSearchTool.Input("shorten"),
                 new ToolExecutionContext(Path.of(".")));
 
         assertFalse(result.isError());
@@ -47,7 +47,7 @@ class ToolSearchToolTest {
                 new ToolExecutionContext(Path.of(".")));
 
         assertFalse(result.isError());
-        assertTrue(result.content().contains("No tools found"));
+        assertTrue(result.content().contains("(no matches)"));
     }
 
     @Test

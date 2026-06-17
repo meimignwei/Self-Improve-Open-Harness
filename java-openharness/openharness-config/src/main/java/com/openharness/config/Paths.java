@@ -52,6 +52,19 @@ public final class Paths {
         return dir;
     }
 
+    /**
+     * Returns the project session directory using content-addressed hashing.
+     * Matching Python's get_project_session_dir(): sessions/<name>-<sha1>/
+     */
+    public static Path projectSessionDir(Path cwd) {
+        String absPath = cwd.toAbsolutePath().normalize().toString();
+        String digest = sha1Hex(absPath).substring(0, 12);
+        String dirName = cwd.toAbsolutePath().normalize().getFileName().toString() + "-" + digest;
+        Path dir = sessionsDir().resolve(dirName);
+        ensureDir(dir);
+        return dir;
+    }
+
     public static Path tasksDir() {
         Path dir = dataDir().resolve("tasks");
         ensureDir(dir);
@@ -100,10 +113,39 @@ public final class Paths {
         return dir;
     }
 
+    /**
+     * Returns the persistent project memory directory using content-addressed hashing.
+     * Matching Python's get_project_memory_dir(): ~/.openharness/data/memory/<name>-<sha1>/
+     */
     public static Path projectMemoryDir(Path cwd) {
-        Path dir = projectConfigDir(cwd).resolve("memory");
+        String absPath = cwd.toAbsolutePath().normalize().toString();
+        String digest = sha1Hex(absPath).substring(0, 12);
+        String dirName = cwd.toAbsolutePath().normalize().getFileName().toString() + "-" + digest;
+        Path dir = dataDir().resolve("memory").resolve(dirName);
         ensureDir(dir);
         return dir;
+    }
+
+    /**
+     * Returns the project memory entrypoint file.
+     * Matching Python's get_memory_entrypoint(): <memory_dir>/MEMORY.md
+     */
+    public static Path memoryEntrypoint(Path cwd) {
+        return projectMemoryDir(cwd).resolve("MEMORY.md");
+    }
+
+    private static String sha1Hex(String input) {
+        try {
+            var md = java.security.MessageDigest.getInstance("SHA-1");
+            byte[] digest = md.digest(input.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder();
+            for (byte b : digest) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-1 not available", e);
+        }
     }
 
     public static Path usageTrackerPath() {

@@ -89,8 +89,9 @@ public class TerminalUI {
                     case StreamEvent.StatusEvent(var msg, var level) -> renderer.printLine("[" + msg + "]");
                     case StreamEvent.ErrorStreamEvent(var msg) -> renderer.printLine("[Error: " + msg + "]");
                     case StreamEvent.AssistantTurnComplete(var usage) -> { /* turn boundary */ }
-                    case StreamEvent.CompactProgressEvent(var removed, var remaining) ->
-                            renderer.printLine("[Compacted " + removed + " messages]");
+                    case StreamEvent.CompactProgressEvent(var phase, var trigger, var msg,
+                                                         var attempt, var checkpoint, var metadata) ->
+                            renderer.printLine("[compact:" + phase + "] " + (msg != null ? msg : ""));
                 }
             }
 

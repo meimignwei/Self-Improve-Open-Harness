@@ -29,7 +29,7 @@ public class ToolSearchTool extends BaseTool<ToolSearchTool.Input> {
                 .map(t -> t.name() + ": " + t.description())
                 .collect(Collectors.joining("\n"));
         if (matches.isEmpty()) {
-            return ToolResult.success("No tools found matching '" + arguments.query() + "'.");
+            return ToolResult.success("(no matches)");
         }
         return ToolResult.success(matches);
     }

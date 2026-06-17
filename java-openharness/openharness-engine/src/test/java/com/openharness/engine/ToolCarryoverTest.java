@@ -30,11 +30,11 @@ class ToolCarryoverTest {
         Path store = tempDir.resolve("carryover.json");
         ToolCarryover carryover = new ToolCarryover(store);
         String longContent = "line\n".repeat(100);
-        carryover.evaluate("read", ToolResult.success(longContent));
+        carryover.evaluate("read_file", ToolResult.success(longContent));
 
         String snippet = carryover.buildPromptSnippet();
         assertTrue(snippet.contains("Carried-over context"));
-        assertTrue(snippet.contains("read"));
+        assertTrue(snippet.contains("read_file"));
     }
 
     @Test
@@ -53,7 +53,7 @@ class ToolCarryoverTest {
     void shouldClearItems(@TempDir Path tempDir) {
         Path store = tempDir.resolve("carryover.json");
         ToolCarryover carryover = new ToolCarryover(store);
-        carryover.evaluate("read", ToolResult.success("content\n".repeat(100)));
+        carryover.evaluate("read_file", ToolResult.success("content\n".repeat(100)));
         carryover.clear();
         assertEquals("", carryover.buildPromptSnippet());
     }
@@ -62,8 +62,8 @@ class ToolCarryoverTest {
     void shouldReplaceExistingToolEntry(@TempDir Path tempDir) {
         Path store = tempDir.resolve("carryover.json");
         ToolCarryover carryover = new ToolCarryover(store);
-        carryover.evaluate("read", ToolResult.success("first\n".repeat(100)));
-        carryover.evaluate("read", ToolResult.success("second\n".repeat(100)));
+        carryover.evaluate("read_file", ToolResult.success("first\n".repeat(100)));
+        carryover.evaluate("read_file", ToolResult.success("second\n".repeat(100)));
 
         String snippet = carryover.buildPromptSnippet();
         assertTrue(snippet.contains("second"));

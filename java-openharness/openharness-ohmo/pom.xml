@@ -25,6 +25,22 @@
             <artifactId>openharness-config</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.openharness</groupId>
+            <artifactId>openharness-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.openharness</groupId>
+            <artifactId>openharness-engine</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.openharness</groupId>
+            <artifactId>openharness-tools</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.openharness</groupId>
+            <artifactId>openharness-extensions</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
         </dependency>

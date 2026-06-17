@@ -13,6 +13,7 @@ import com.openharness.config.ProviderProfile;
 import com.openharness.config.Settings;
 import com.openharness.engine.QueryEngine;
 import com.openharness.engine.tool.ToolRegistry;
+import com.openharness.extensions.mcp.McpClientManager;
 import com.openharness.permissions.PermissionChecker;
 import com.openharness.tools.ToolBootstrap;
 
@@ -30,11 +31,16 @@ public class OpenHarnessApp {
     private final Settings settings;
     private final RuntimeOutput.Mode mode;
     private final AgentRuntime agentRuntime;
+    private McpClientManager mcpManager;
 
     public OpenHarnessApp(Settings settings, RuntimeOutput.Mode mode, AgentRuntime agentRuntime) {
         this.settings = settings;
         this.mode = mode;
         this.agentRuntime = agentRuntime;
+    }
+
+    public void setMcpManager(McpClientManager mcpManager) {
+        this.mcpManager = mcpManager;
     }
 
     /**
@@ -62,7 +68,9 @@ public class OpenHarnessApp {
                 output.emitStatus("Starting with prompt: " + initialPrompt);
                 runSingleQuery(initialPrompt, output);
             }
-            new EventLoop(output, settings, agentRuntime).run();
+            EventLoop loop = new EventLoop(output, settings, agentRuntime);
+            if (mcpManager != null) loop.setMcpManager(mcpManager);
+            loop.run();
         }
     }
 

@@ -14,3 +14,4 @@ com/openharness/engine/QueryEngineIT$UpperTool$Input.class
 com/openharness/engine/QueryEngineIT.class
 com/openharness/engine/tool/BaseToolTest.class
 com/openharness/engine/QueryEngineIT$EchoTool$Input.class
+com/openharness/permissions/PermissionCheckerTest.class
