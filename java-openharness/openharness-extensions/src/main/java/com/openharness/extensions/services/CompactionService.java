@@ -1194,7 +1194,7 @@ public class CompactionService {
             String hookNote = postResult.reason() != null ? postResult.reason() : "";
             if (hookNote.isEmpty()) {
                 hookNote = postResult.results().stream()
-                        .map(r -> r.message() != null ? r.message().strip() : "")
+                        .map(r -> r.output() != null ? r.output().strip() : "")
                         .filter(s -> !s.isEmpty())
                         .collect(Collectors.joining("\n"));
             }

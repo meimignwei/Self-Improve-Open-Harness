@@ -15,17 +15,72 @@
           <entry name="$MAVEN_REPOSITORY$/info/picocli/picocli-codegen/4.7.6/picocli-codegen-4.7.6.jar" />
           <entry name="$MAVEN_REPOSITORY$/info/picocli/picocli/4.7.6/picocli-4.7.6.jar" />
         </processorPath>
-        <module name="openharness-api" />
-        <module name="openharness-config" />
         <module name="openharness-ui" />
         <module name="openharness-ohmo" />
-        <module name="openharness-observability" />
         <module name="openharness-app" />
-        <module name="openharness-engine" />
         <module name="openharness-extensions" />
-        <module name="openharness-common" />
         <module name="openharness-tools" />
         <module name="openharness-cli" />
+      </profile>
+      <profile name="Annotation profile for openharness-api" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="false">
+          <entry name="$MAVEN_REPOSITORY$/info/picocli/picocli-codegen/4.7.6/picocli-codegen-4.7.6.jar" />
+          <entry name="$MAVEN_REPOSITORY$/info/picocli/picocli/4.7.6/picocli-4.7.6.jar" />
+          <entry name="$MAVEN_REPOSITORY$/info/picocli/picocli-codegen/4.7.6/picocli-codegen-4.7.6.jar" />
+          <entry name="$MAVEN_REPOSITORY$/info/picocli/picocli/4.7.6/picocli-4.7.6.jar" />
+        </processorPath>
+        <module name="openharness-api" />
+      </profile>
+      <profile name="Annotation profile for openharness-common" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="false">
+          <entry name="$MAVEN_REPOSITORY$/info/picocli/picocli-codegen/4.7.6/picocli-codegen-4.7.6.jar" />
+          <entry name="$MAVEN_REPOSITORY$/info/picocli/picocli/4.7.6/picocli-4.7.6.jar" />
+          <entry name="$MAVEN_REPOSITORY$/info/picocli/picocli-codegen/4.7.6/picocli-codegen-4.7.6.jar" />
+          <entry name="$MAVEN_REPOSITORY$/info/picocli/picocli/4.7.6/picocli-4.7.6.jar" />
+        </processorPath>
+        <module name="openharness-common" />
+      </profile>
+      <profile name="Annotation profile for openharness-config" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="false">
+          <entry name="$MAVEN_REPOSITORY$/info/picocli/picocli-codegen/4.7.6/picocli-codegen-4.7.6.jar" />
+          <entry name="$MAVEN_REPOSITORY$/info/picocli/picocli/4.7.6/picocli-4.7.6.jar" />
+          <entry name="$MAVEN_REPOSITORY$/info/picocli/picocli-codegen/4.7.6/picocli-codegen-4.7.6.jar" />
+          <entry name="$MAVEN_REPOSITORY$/info/picocli/picocli/4.7.6/picocli-4.7.6.jar" />
+        </processorPath>
+        <module name="openharness-config" />
+      </profile>
+      <profile name="Annotation profile for openharness-engine" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="false">
+          <entry name="$MAVEN_REPOSITORY$/info/picocli/picocli-codegen/4.7.6/picocli-codegen-4.7.6.jar" />
+          <entry name="$MAVEN_REPOSITORY$/info/picocli/picocli/4.7.6/picocli-4.7.6.jar" />
+          <entry name="$MAVEN_REPOSITORY$/info/picocli/picocli-codegen/4.7.6/picocli-codegen-4.7.6.jar" />
+          <entry name="$MAVEN_REPOSITORY$/info/picocli/picocli/4.7.6/picocli-4.7.6.jar" />
+        </processorPath>
+        <module name="openharness-engine" />
+      </profile>
+      <profile name="Annotation profile for openharness-observability" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="false">
+          <entry name="$MAVEN_REPOSITORY$/info/picocli/picocli-codegen/4.7.6/picocli-codegen-4.7.6.jar" />
+          <entry name="$MAVEN_REPOSITORY$/info/picocli/picocli/4.7.6/picocli-4.7.6.jar" />
+          <entry name="$MAVEN_REPOSITORY$/info/picocli/picocli-codegen/4.7.6/picocli-codegen-4.7.6.jar" />
+          <entry name="$MAVEN_REPOSITORY$/info/picocli/picocli/4.7.6/picocli-4.7.6.jar" />
+        </processorPath>
+        <module name="openharness-observability" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>

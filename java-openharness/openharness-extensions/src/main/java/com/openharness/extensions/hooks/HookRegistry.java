@@ -32,11 +32,38 @@ public class HookRegistry {
     public List<HookDefinition> get(HookEvent event) {
         List<HookDefinition> list = hooks.getOrDefault(event, List.of());
         return list.stream()
-                .sorted(java.util.Comparator.comparingInt(HookDefinition::priority))
+                .sorted(java.util.Comparator.comparingInt(HookDefinition::priority).reversed())
                 .toList();
     }
 
     public Map<HookEvent, List<HookDefinition>> all() {
         return Map.copyOf(hooks);
+    }
+
+    public String summary() {
+        StringBuilder sb = new StringBuilder();
+        for (HookEvent event : HookEvent.values()) {
+            List<HookDefinition> list = get(event);
+            if (list.isEmpty()) continue;
+            sb.append(event.name().toLowerCase()).append(":\n");
+            for (HookDefinition hook : list) {
+                String detail = switch (hook) {
+                    case HookDefinition.CommandHook ch -> ch.command();
+                    case HookDefinition.PromptHook ph -> ph.prompt();
+                    case HookDefinition.HttpHook hh -> hh.url();
+                    case HookDefinition.AgentHook ah -> ah.prompt();
+                };
+                String suffix = "";
+                if (hook.matcher() != null && !hook.matcher().isBlank()) {
+                    suffix += " matcher=" + hook.matcher();
+                }
+                if (hook.priority() != 0) {
+                    suffix += " priority=" + hook.priority();
+                }
+                sb.append("  - ").append(hook.getClass().getSimpleName())
+                        .append(suffix).append(": ").append(detail).append("\n");
+            }
+        }
+        return sb.toString();
     }
 }

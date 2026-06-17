@@ -1,6 +1,7 @@
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/test/java/com/openharness/extensions/bridge/WorkSecretTest.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/test/java/com/openharness/extensions/channels/BaseChannelTest.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/test/java/com/openharness/extensions/coordinator/AgentDefinitionTest.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/test/java/com/openharness/extensions/hooks/HookSystemTest.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/test/java/com/openharness/extensions/memory/MemoryEntryTest.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/test/java/com/openharness/extensions/memory/MemoryFileStoreTest.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/test/java/com/openharness/extensions/memory/MemoryIntegrationTest.java
