@@ -229,10 +229,8 @@ public class MainCommand implements Callable<Integer> {
                     System.getProperty("user.home"), ".openharness", "carryover.json");
             var carryover = new com.openharness.engine.ToolCarryover(carryoverPath);
 
-            // Auto-compaction with threshold from settings
-            int compactThreshold = settings.autoCompactThresholdTokens() != null
-                    ? settings.autoCompactThresholdTokens() : 8000;
-            var autoCompact = new com.openharness.engine.AutoCompactState(compactThreshold);
+            // Auto-compaction state tracking (thresholds managed by CompactionService)
+            var autoCompact = new com.openharness.engine.AutoCompactState();
 
             var costTracker = new com.openharness.engine.CostTracker();
             var queryEngine = new QueryEngine(apiClient, registry, permissionChecker,

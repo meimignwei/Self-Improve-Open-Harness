@@ -77,7 +77,7 @@ class QueryEngineIT {
                 new ToolRegistry(),
                 new PermissionChecker(new PermissionSettings()),
                 new CostTracker(),
-                new AutoCompactState(0),
+                new AutoCompactState(),
                 carryover
         );
 

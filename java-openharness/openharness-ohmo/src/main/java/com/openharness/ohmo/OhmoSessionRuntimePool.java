@@ -380,10 +380,11 @@ public class OhmoSessionRuntimePool {
                         Map.of("_progress", true, "_session_key", sessionKey)));
             }
 
-            case StreamEvent.CompactProgressEvent(var removed, var remaining) -> {
+            case StreamEvent.CompactProgressEvent(var phase, var trigger, var msg,
+                                                 var attempt, var checkpoint, var metadata) -> {
                 onUpdate.accept(new GatewayStreamUpdate("progress",
                         formatChannelProgress(message.channel(), "compact_progress",
-                                "Compacting...", sessionKey, content, null, null, null),
+                                msg != null ? msg : "Compacting...", sessionKey, content, null, null, null),
                         Map.of("_progress", true, "_session_key", sessionKey, "_compact", true)));
             }
 

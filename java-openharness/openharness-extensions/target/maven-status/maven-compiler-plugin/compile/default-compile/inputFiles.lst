@@ -47,10 +47,14 @@
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/sandbox/SrtSandbox.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/services/AutoDreamService.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/services/CodeIntelligence.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/services/CompactAttachment.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/services/CompactionConstants.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/services/CompactionResult.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/services/CompactionService.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/services/CronRegistry.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/services/CronScheduler.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/services/MemoryExtractionService.java
+/Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/services/SessionMemoryService.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/services/SessionStorage.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/skills/SkillDefinition.java
 /Users/mmw/IdeaProjects/self-evolution-claude-code/java-openharness/openharness-extensions/src/main/java/com/openharness/extensions/skills/SkillLoader.java

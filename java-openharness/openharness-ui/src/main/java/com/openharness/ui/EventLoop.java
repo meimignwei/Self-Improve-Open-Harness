@@ -86,8 +86,9 @@ public class EventLoop {
                     case StreamEvent.StatusEvent(var msg, var level) -> output.emitStatus(msg);
                     case StreamEvent.ErrorStreamEvent(var msg) -> output.emitError(msg);
                     case StreamEvent.AssistantTurnComplete(var usage) -> { /* turn boundary */ }
-                    case StreamEvent.CompactProgressEvent(var removed, var remaining) ->
-                            output.emitStatus("Compacted " + removed + " messages");
+                    case StreamEvent.CompactProgressEvent(var phase, var trigger, var msg,
+                                                         var attempt, var checkpoint, var metadata) ->
+                            output.emitStatus("[compact:" + phase + "] " + (msg != null ? msg : ""));
                 }
             }
 

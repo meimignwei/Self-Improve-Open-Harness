@@ -1,17 +1,17 @@
 package com.openharness.ohmo;
 
 import com.openharness.api.AnthropicMessagesClient;
-import com.openharness.api.StreamingApiClient;
 import com.openharness.api.StreamOptions;
+import com.openharness.api.StreamingApiClient;
 import com.openharness.common.AgentRuntime;
 import com.openharness.common.ApiStreamEvent;
 import com.openharness.common.ConversationMessage;
 import com.openharness.common.ContentBlock;
 import com.openharness.common.Role;
-import com.openharness.config.AtomicFileWriter;
 import com.openharness.config.MemorySettings;
 import com.openharness.config.PermissionSettings;
 import com.openharness.config.SandboxSettings;
+import com.openharness.engine.AutoCompactCallback;
 import com.openharness.engine.AutoCompactState;
 import com.openharness.engine.QueryEngine;
 import com.openharness.engine.tool.ToolRegistry;
@@ -37,7 +37,6 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 /**
  * Creates and wires the full engine stack for the ohmo gateway.
@@ -72,23 +71,23 @@ public class GatewayEngineFactory {
 
         Consumer<List<ConversationMessage>> afterTurnCallback = buildAfterTurnCallback(
                 memoryMgr, extractionSvc, apiClient, memSettings);
-        Function<List<ConversationMessage>, List<ConversationMessage>> compactFn = buildCompactFn(
-                compactionSvc, apiClient);
-        Consumer<List<ConversationMessage>> sessionEndCallback = buildSessionEndCallback(
-                compactionSvc, workspaceRoot);
 
         Runnable memoryPruner = memoryMgr != null ? memoryMgr::pruneExpired : null;
 
-        // Auto-compaction state wiring from MemorySettings
-        int compactThreshold = memSettings.autoCompactThresholdTokens() != null
-                ? memSettings.autoCompactThresholdTokens()
-                : (memSettings.contextWindowTokens() != null
-                    ? memSettings.contextWindowTokens() / 10 : 8000);
-        AutoCompactState autoCompact = new AutoCompactState(compactThreshold);
+        // Auto-compaction state tracking (thresholds managed by CompactionService)
+        AutoCompactState autoCompact = new AutoCompactState();
+        // Wrap the compaction service in a callback to avoid module cycle
+        AutoCompactCallback compactCallback = (messages, model) -> {
+            var result = compactionSvc.autoCompactIfNeeded(
+                    messages, apiClient, model, null,
+                    autoCompact, 6, null, false, "auto",
+                    null, null, null, null);
+            return new AutoCompactCallback.CompactResult(result.messages(), result.wasCompacted());
+        };
 
         QueryEngine qe = new QueryEngine(apiClient, registry, permissionChecker,
-                null, autoCompact, null, null, afterTurnCallback, compactFn,
-                memoryPruner, sessionEndCallback);
+                null, autoCompact, compactCallback, null, null,
+                afterTurnCallback, memoryPruner, null);
 
         // Phase 2: add agent-dependent tools that need the engine reference
         var agentTool = new AgentTool(qe);
@@ -241,7 +240,7 @@ public class GatewayEngineFactory {
     }
 
     // ------------------------------------------------------------------
-    // Memory & compaction callback builders
+    // Memory callback builders
     // ------------------------------------------------------------------
 
     private static MemoryManager buildMemoryManager(Path workspaceRoot) {
@@ -294,37 +293,6 @@ public class GatewayEngineFactory {
                 // Best-effort
             }
         };
-    }
-
-    /**
-     * Build the session-end callback that creates and persists a Level 2 checkpoint.
-     */
-    private static Consumer<List<ConversationMessage>> buildSessionEndCallback(
-            CompactionService compactionSvc, Path workspaceRoot) {
-        if (compactionSvc == null) return null;
-        Path checkpointDir = workspaceRoot.resolve("checkpoints");
-        return (conversation) -> {
-            try {
-                var checkpoint = compactionSvc.createSessionCheckpoint(conversation);
-                Files.createDirectories(checkpointDir);
-                Path file = checkpointDir.resolve(
-                        "session-" + checkpoint.timestamp().toEpochMilli() + ".json");
-                AtomicFileWriter.writeJson(file, checkpoint);
-                logger.debug("Session checkpoint saved: {}", file);
-            } catch (Exception e) {
-                logger.debug("Session checkpoint failed: {}", e.getMessage());
-            }
-        };
-    }
-
-    /**
-     * Build the compaction function that uses the LLM to summarize conversation.
-     */
-    private static Function<List<ConversationMessage>, List<ConversationMessage>> buildCompactFn(
-            CompactionService compactionSvc, StreamingApiClient apiClient) {
-        if (compactionSvc == null || apiClient == null) return null;
-        return (messages) -> compactionSvc.llmCompact(messages,
-                (systemPrompt, userPrompt) -> syncComplete(apiClient, systemPrompt, userPrompt));
     }
 
     /**
