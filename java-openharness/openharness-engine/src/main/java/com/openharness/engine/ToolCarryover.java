@@ -86,7 +86,7 @@ public class ToolCarryover {
     }
 
     private boolean isCarryoverTool(String toolName) {
-        return List.of("read", "grep", "glob", "web_fetch", "web_search", "image_to_text").contains(toolName);
+        return List.of("read_file", "grep", "glob", "web_fetch", "web_search", "image_to_text").contains(toolName);
     }
 
     private List<CarryoverItem> load() {

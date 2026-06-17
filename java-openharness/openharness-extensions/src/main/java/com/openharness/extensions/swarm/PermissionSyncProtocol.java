@@ -361,7 +361,7 @@ public class PermissionSyncProtocol {
      */
     public static boolean isReadOnly(String toolName) {
         return switch (toolName) {
-            case "file_read", "read", "glob", "grep", "web_fetch", "web_search",
+            case "file_read", "read_file", "read", "glob", "grep", "web_fetch", "web_search",
                  "task_get", "task_list", "task_output", "cron_list" -> true;
             default -> false;
         };

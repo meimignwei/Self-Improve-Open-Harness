@@ -28,7 +28,7 @@ class McpToolsTest {
         var result = tool.execute(new McpTools.ListMcpResourcesTool.Input("test"), ctx);
 
         assertFalse(result.isError());
-        assertTrue(result.content().contains("No resources found"));
+        assertTrue(result.content().contains("(no MCP resources)"));
     }
 
     @Test

@@ -44,6 +44,6 @@ class McpToolAdapterTest {
 
         var info = new McpToolInfo("srv", "tool-1", "desc", null);
         var adapter = new McpToolAdapter(client, info);
-        assertEquals("mcp_srv_tool_1", adapter.name());
+        assertEquals("mcp__srv__tool_1", adapter.name());
     }
 }

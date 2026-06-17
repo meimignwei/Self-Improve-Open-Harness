@@ -16,19 +16,24 @@ public final class TeamTools {
         private final TeamRegistry teamRegistry;
 
         public TeamCreateTool(TeamRegistry teamRegistry) {
-            super("team_create", "Creates a new team for multi-agent coordination.", Input.class);
+            super("team_create", "Create a lightweight in-memory team for agent tasks.", Input.class);
             this.teamRegistry = teamRegistry;
         }
 
         @Override
         public ToolResult execute(Input arguments, ToolExecutionContext context) {
-            var team = teamRegistry.createTeam(arguments.name());
-            return ToolResult.success("Created team '" + team.name() + "' (id: " + team.id() + ").");
+            try {
+                var team = teamRegistry.createTeam(arguments.name(), arguments.description());
+                return ToolResult.success("Created team " + team.name());
+            } catch (IllegalArgumentException e) {
+                return ToolResult.error(e.getMessage());
+            }
         }
 
-        public record Input(String name) {
+        public record Input(String name, String description) {
             public Input {
                 if (name == null || name.isBlank()) name = "untitled";
+                if (description == null) description = "";
             }
         }
     }
@@ -37,20 +42,24 @@ public final class TeamTools {
         private final TeamRegistry teamRegistry;
 
         public TeamDeleteTool(TeamRegistry teamRegistry) {
-            super("team_delete", "Deletes a team by ID.", Input.class);
+            super("team_delete", "Delete an in-memory team.", Input.class);
             this.teamRegistry = teamRegistry;
         }
 
         @Override
         public ToolResult execute(Input arguments, ToolExecutionContext context) {
-            teamRegistry.deleteTeam(arguments.teamId());
-            return ToolResult.success("Deleted team " + arguments.teamId() + ".");
+            try {
+                teamRegistry.deleteTeam(arguments.name());
+            } catch (IllegalArgumentException e) {
+                return ToolResult.error(e.getMessage());
+            }
+            return ToolResult.success("Deleted team " + arguments.name());
         }
 
-        public record Input(String teamId) {
+        public record Input(String name) {
             public Input {
-                if (teamId == null || teamId.isBlank()) {
-                    throw new IllegalArgumentException("teamId is required");
+                if (name == null || name.isBlank()) {
+                    throw new IllegalArgumentException("name is required");
                 }
             }
         }

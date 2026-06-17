@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class CronToolsTest {
 
-    private static final Pattern JOB_ID_PATTERN = Pattern.compile("Cron job created: ([a-f0-9-]+)");
+    private static final Pattern JOB_ID_PATTERN = Pattern.compile("Created cron job '([^']+)'");
 
     @TempDir
     Path tempDir;
@@ -35,11 +35,11 @@ class CronToolsTest {
     void cronCreateShouldWriteRegistry() {
         var tool = new CronTools.CronCreateTool();
         var input = new CronTools.CronCreateTool.Input(
-                "0 9 * * *", "daily report", "Daily task", "UTC", true);
+                "0 9 * * *", "daily report", "echo daily", "Daily task", "UTC", true);
         ToolResult result = tool.execute(input, ctx);
 
         assertFalse(result.isError());
-        assertTrue(result.content().contains("Cron job created"));
+        assertTrue(result.content().contains("Created cron job"));
         assertTrue(Files.exists(openharnessDir.resolve("cron_jobs.json")));
     }
 
@@ -47,13 +47,13 @@ class CronToolsTest {
     void cronListShouldReturnJobs() {
         var create = new CronTools.CronCreateTool();
         create.execute(new CronTools.CronCreateTool.Input(
-                "*/5 * * * *", "frequent check", "Freq task", "UTC", true), ctx);
+                "*/5 * * * *", "frequent check", "echo check", "Freq task", "UTC", true), ctx);
 
         var list = new CronTools.CronListTool();
         ToolResult result = list.execute(null, ctx);
 
         assertFalse(result.isError());
-        assertTrue(result.content().contains("Freq task"), "Should contain description: " + result.content());
+        assertTrue(result.content().contains("frequent check"), "Should contain job name: " + result.content());
         assertTrue(result.content().contains("*/5"), "Should contain cron expr: " + result.content());
     }
 
@@ -70,7 +70,7 @@ class CronToolsTest {
     void cronDeleteShouldRemoveJob() {
         var create = new CronTools.CronCreateTool();
         ToolResult created = create.execute(new CronTools.CronCreateTool.Input(
-                "0 12 * * *", "noon", "Noon task", "UTC", true), ctx);
+                "0 12 * * *", "noon", "echo noon", "Noon task", "UTC", true), ctx);
         assertFalse(created.isError(), "Create should succeed: " + created.content());
 
         Matcher m = JOB_ID_PATTERN.matcher(created.content());
@@ -81,7 +81,7 @@ class CronToolsTest {
         ToolResult result = delete.execute(new CronTools.CronDeleteTool.Input(jobId), ctx);
 
         assertFalse(result.isError(), "Delete should succeed: " + result.content());
-        assertTrue(result.content().contains("deleted"));
+        assertTrue(result.content().contains("Deleted"));
     }
 
     @Test
@@ -96,7 +96,7 @@ class CronToolsTest {
     @Test
     void cronCreateRejectsNullCron() {
         assertThrows(IllegalArgumentException.class,
-                () -> new CronTools.CronCreateTool.Input(null, "p", "d", "UTC", true));
+                () -> new CronTools.CronCreateTool.Input(null, "p", "cmd", "d", "UTC", true));
     }
 
     @Test

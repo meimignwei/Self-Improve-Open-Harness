@@ -14,22 +14,32 @@ public final class McpTools {
 
     private McpTools() {}
 
+    /**
+     * List MCP resources from ALL connected servers (matching Python's ListMcpResourcesTool).
+     * Java extension: also supports listing from a single server when serverName is provided.
+     */
     public static class ListMcpResourcesTool extends BaseTool<ListMcpResourcesTool.Input> {
         private final McpClient mcpClient;
 
         public ListMcpResourcesTool(McpClient mcpClient) {
-            super("list_mcp_resources", "List available resources from an MCP server.", Input.class);
+            super("list_mcp_resources",
+                    "List MCP resources available from connected servers. "
+                            + "Optionally filter by serverName to list resources from a single server.",
+                    Input.class);
             this.mcpClient = mcpClient;
         }
 
         @Override
         public ToolResult execute(Input arguments, ToolExecutionContext context) {
-            var resources = mcpClient.listResources(arguments.serverName());
+            var resources = arguments.serverName() != null && !arguments.serverName().isBlank()
+                    ? mcpClient.listResources(arguments.serverName())
+                    : mcpClient.listResources();
             if (resources.isEmpty()) {
-                return ToolResult.success("No resources found on MCP server '" + arguments.serverName() + "'.");
+                return ToolResult.success("(no MCP resources)");
             }
+            // Python format: {server_name}:{uri} {description}
             String result = resources.stream()
-                    .map(r -> r.name() + " (" + r.uri() + "): " + r.description())
+                    .map(r -> r.serverName() + ":" + r.uri() + " " + r.description())
                     .collect(Collectors.joining("\n"));
             return ToolResult.success(result);
         }
@@ -41,9 +51,7 @@ public final class McpTools {
 
         public record Input(String serverName) {
             public Input {
-                if (serverName == null || serverName.isBlank()) {
-                    throw new IllegalArgumentException("serverName is required");
-                }
+                // serverName is optional (matching Python which has no params)
             }
         }
     }
@@ -52,13 +60,13 @@ public final class McpTools {
         private final McpClient mcpClient;
 
         public ReadMcpResourceTool(McpClient mcpClient) {
-            super("read_mcp_resource", "Read the contents of an MCP resource by URI.", Input.class);
+            super("read_mcp_resource", "Read an MCP resource by server and URI.", Input.class);
             this.mcpClient = mcpClient;
         }
 
         @Override
         public ToolResult execute(Input arguments, ToolExecutionContext context) {
-            String content = mcpClient.readResource(arguments.serverName(), arguments.uri());
+            String content = mcpClient.readResource(arguments.server(), arguments.uri());
             return ToolResult.success(content);
         }
 
@@ -67,10 +75,10 @@ public final class McpTools {
             return true;
         }
 
-        public record Input(String serverName, String uri) {
+        public record Input(String server, String uri) {
             public Input {
-                if (serverName == null || serverName.isBlank()) {
-                    throw new IllegalArgumentException("serverName is required");
+                if (server == null || server.isBlank()) {
+                    throw new IllegalArgumentException("server is required");
                 }
                 if (uri == null || uri.isBlank()) {
                     throw new IllegalArgumentException("uri is required");

@@ -10,6 +10,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 public interface McpClient {
     List<McpResourceInfo> listResources(String serverName);
+
+    /** List MCP resources from all connected servers (matching Python's list_resources). */
+    default List<McpResourceInfo> listResources() {
+        return List.of();
+    }
+
     String readResource(String serverName, String uri);
     String callTool(String serverName, String toolName, JsonNode args);
 

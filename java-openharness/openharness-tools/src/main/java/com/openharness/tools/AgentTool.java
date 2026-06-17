@@ -17,12 +17,17 @@ import com.openharness.extensions.swarm.InProcessBackend;
 import com.openharness.extensions.swarm.SpawnResult;
 import com.openharness.extensions.swarm.TeammateBackend;
 import com.openharness.extensions.swarm.TeammateSpec;
+import com.openharness.engine.task.TaskManager;
+import com.openharness.extensions.hooks.HookEvent;
+import com.openharness.extensions.hooks.HookExecutor;
 import com.openharness.extensions.coordinator.CoordinatorMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  * Spawn a sub-agent to handle a task autonomously via the swarm backend.
@@ -35,6 +40,7 @@ public class AgentTool extends BaseTool<AgentTool.Input> {
     private final AgentRuntime agentRuntime;
     private final AgentDefinitionsLoader definitionsLoader;
     private volatile MemoryManager memoryManager;
+    private volatile TaskManager taskManager;
 
     public AgentTool(AgentRuntime agentRuntime) {
         super("agent", "Spawn a local background agent task.", Input.class);
@@ -51,6 +57,11 @@ public class AgentTool extends BaseTool<AgentTool.Input> {
     /** Set a MemoryManager to enable memory context injection for sub-agents. */
     public void setMemoryManager(MemoryManager mgr) {
         this.memoryManager = mgr;
+    }
+
+    /** Set a TaskManager to enable SUBAGENT_STOP hook notification on task completion. */
+    public void setTaskManager(TaskManager mgr) {
+        this.taskManager = mgr;
     }
 
     @Override
@@ -131,12 +142,70 @@ public class AgentTool extends BaseTool<AgentTool.Input> {
                 }
             }
 
+            // Register SUBAGENT_STOP hook completion listener
+            HookExecutor hookExecutor = (HookExecutor) context.hookExecutor();
+            if (hookExecutor != null && taskManager != null) {
+                String spawnedTaskId = result.taskId();
+                String spawnedAgentId = result.agentId();
+                String spawnedBackendType = result.backendType();
+                String spawnedMode = mode;
+                String spawnedDescription = arguments.description() != null ? arguments.description() : "";
+
+                Consumer<TaskManager.TaskRecord> listener = new Consumer<>() {
+                    private volatile boolean fired = false;
+
+                    @Override
+                    public void accept(TaskManager.TaskRecord taskRecord) {
+                        if (fired) return;
+                        if (!taskRecord.id().equals(spawnedTaskId)) return;
+                        fired = true;
+                        taskManager.removeCompletionListener(this);
+                        Map<String, Object> payload = new HashMap<>();
+                        payload.put("event", HookEvent.SUBAGENT_STOP.name().toLowerCase());
+                        payload.put("agent_id", spawnedAgentId);
+                        payload.put("task_id", spawnedTaskId);
+                        payload.put("backend_type", spawnedBackendType);
+                        payload.put("status", taskRecord.status().name().toLowerCase());
+                        payload.put("return_code", taskRecord.returnCode());
+                        payload.put("description", spawnedDescription);
+                        payload.put("subagent_type", arguments.subagentType() != null ? arguments.subagentType() : "agent");
+                        payload.put("team", team);
+                        payload.put("mode", spawnedMode);
+                        try {
+                            hookExecutor.execute(HookEvent.SUBAGENT_STOP, payload);
+                        } catch (Exception e) {
+                            logger.warn("SUBAGENT_STOP hook failed: {}", e.getMessage());
+                        }
+                    }
+                };
+                taskManager.onCompletion(listener);
+
+                // Handle race: task may have already completed before listener was registered
+                var opt = taskManager.getTask(spawnedTaskId);
+                if (opt.isPresent()) {
+                    var taskRecord = opt.get();
+                    var status = taskRecord.status();
+                    if (status == TaskManager.TaskStatus.COMPLETED
+                            || status == TaskManager.TaskStatus.FAILED
+                            || status == TaskManager.TaskStatus.KILLED) {
+                        listener.accept(taskRecord);
+                    }
+                }
+            }
+
             String output = String.format(
                     "Spawned agent %s (task_id=%s, backend=%s, description=%s)",
                     result.agentId(), result.taskId(), result.backendType(),
                     arguments.description() != null ? arguments.description() : "");
 
-            return ToolResult.success(output);
+            Map<String, Object> metadata = Map.of(
+                    "agent_id", result.agentId(),
+                    "task_id", result.taskId(),
+                    "backend_type", result.backendType(),
+                    "description", arguments.description() != null ? arguments.description() : ""
+            );
+
+            return ToolResult.success(output, metadata);
         } catch (Exception e) {
             logger.error("Failed to spawn agent: {}", e.getMessage(), e);
             return ToolResult.error(e.getMessage());

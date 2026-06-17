@@ -16,12 +16,12 @@ import java.nio.file.Path;
 public class FileEditTool extends BaseTool<FileEditTool.Input> {
 
     public FileEditTool() {
-        super("edit", "Performs exact string replacements in an existing file.", Input.class);
+        super("edit_file", "Edit an existing file by replacing a string.", Input.class);
     }
 
     @Override
     public ToolResult execute(Input arguments, ToolExecutionContext context) {
-        Path filePath = context.cwd().resolve(arguments.path()).normalize();
+        Path filePath = resolvePath(context.cwd(), arguments.path());
 
         if (!Files.exists(filePath)) {
             return ToolResult.error("File not found: " + filePath);
@@ -41,7 +41,7 @@ public class FileEditTool extends BaseTool<FileEditTool.Input> {
             }
 
             if (count == 0) {
-                return ToolResult.error("old_string not found in file: " + filePath);
+                return ToolResult.error("old_string was not found in the file");
             }
 
             if (arguments.replaceAll()) {
@@ -62,10 +62,7 @@ public class FileEditTool extends BaseTool<FileEditTool.Input> {
             Files.move(tempPath, filePath, java.nio.file.StandardCopyOption.ATOMIC_MOVE,
                     java.nio.file.StandardCopyOption.REPLACE_EXISTING);
 
-            String msg = arguments.replaceAll()
-                    ? "Replaced " + count + " occurrence(s) in " + filePath
-                    : "Replaced 1 occurrence in " + filePath;
-            return ToolResult.success(msg);
+            return ToolResult.success("Updated " + filePath);
 
         } catch (IOException e) {
             return ToolResult.error("Failed to edit file: " + e.getMessage());
@@ -75,6 +72,21 @@ public class FileEditTool extends BaseTool<FileEditTool.Input> {
     @Override
     public boolean isReadOnly(Input arguments) {
         return false;
+    }
+
+    /**
+     * Resolve a path, supporting ~ expansion and relative paths.
+     */
+    private static Path resolvePath(Path cwd, String candidate) {
+        String expanded = candidate;
+        if (expanded.startsWith("~")) {
+            expanded = System.getProperty("user.home") + expanded.substring(1);
+        }
+        Path path = Path.of(expanded);
+        if (!path.isAbsolute()) {
+            path = cwd.resolve(path);
+        }
+        return path.normalize();
     }
 
     public record Input(String path, String oldString, String newString, boolean replaceAll) {

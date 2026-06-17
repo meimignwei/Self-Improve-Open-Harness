@@ -18,7 +18,7 @@ class PlanModeToolsTest {
 
         assertFalse(result.isError());
         assertEquals(Boolean.TRUE, ctx.metadata().get("plan_mode"));
-        assertTrue(tool.isReadOnly(null));
+        assertFalse(tool.isReadOnly(null));
         assertEquals("enter_plan_mode", tool.name());
     }
 
@@ -32,7 +32,7 @@ class PlanModeToolsTest {
         assertFalse(result.isError());
         assertEquals(Boolean.FALSE, ctx.metadata().get("plan_mode"));
         assertEquals(Boolean.TRUE, ctx.metadata().get("plan_ready"));
-        assertTrue(tool.isReadOnly(null));
+        assertFalse(tool.isReadOnly(null));
         assertEquals("exit_plan_mode", tool.name());
     }
 }

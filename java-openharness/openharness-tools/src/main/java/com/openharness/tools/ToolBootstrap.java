@@ -49,7 +49,6 @@ public final class ToolBootstrap {
                                                       McpClient mcpClient,
                                                       Path configPath,
                                                       AgentRuntime agentRuntime,
-                                                      SkillTool.SkillInvoker skillInvoker,
                                                       SendMessageTool.MessageSender messageSender) {
         ToolRegistry registry = createBasicRegistry();
 
@@ -83,10 +82,6 @@ public final class ToolBootstrap {
 
         if (agentRuntime != null) {
             registry.register(new AgentTool(agentRuntime));
-        }
-
-        if (skillInvoker != null) {
-            registry.register(new SkillTool(skillInvoker));
         }
 
         if (messageSender != null) {
@@ -130,6 +125,7 @@ public final class ToolBootstrap {
         registry.register(new SleepTool());
         registry.register(new TodoWriteTool());
         registry.register(new AskUserQuestionTool());
+        registry.register(new SkillTool());
     }
 
     public static void registerConfigTools(ToolRegistry registry) {

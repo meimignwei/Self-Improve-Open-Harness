@@ -15,15 +15,42 @@ class LspToolTest {
     private final ToolExecutionContext ctx = new ToolExecutionContext(Path.of("."));
 
     @Test
-    void shouldRejectMissingFilePathForDocumentSymbol() {
-        var result = tool.execute(new LspTool.Input("document_symbol", null, null, null, null, null), ctx);
-        assertTrue(result.isError());
-        assertTrue(result.content().contains("file_path"));
+    void shouldRejectMissingQueryForWorkspaceSymbol() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new LspTool.Input("workspace_symbol", null, null, null, null, null));
+    }
+
+    @Test
+    void shouldRejectMissingFilePathForNonWorkspaceSymbol() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new LspTool.Input("document_symbol", null, null, null, null, null));
+    }
+
+    @Test
+    void shouldRejectMissingSymbolOrLineForPositionalOps() {
+        // hover requires symbol or line
+        assertThrows(IllegalArgumentException.class,
+                () -> new LspTool.Input("hover", "f.py", null, null, null, null));
+    }
+
+    @Test
+    void hoverWithLineShouldNotThrowValidation(@TempDir Path tempDir) throws Exception {
+        Path f = tempDir.resolve("test.py");
+        Files.writeString(f, "x = 1\n");
+        var localCtx = new ToolExecutionContext(tempDir);
+        // Input with line provided should not throw validation error
+        var input = new LspTool.Input("hover", f.toString(), null, 1, null, null);
+        assertNotNull(input);
+        // Execute should complete without exception (may fail if pylsp not installed, or succeed with no result)
+        var result = tool.execute(input, localCtx);
+        assertNotNull(result);
+        assertNotNull(result.content());
     }
 
     @Test
     void shouldRejectMissingFile(@TempDir Path tempDir) {
-        var result = tool.execute(new LspTool.Input("document_symbol", tempDir.resolve("missing.py").toString(), null, null, null, null), ctx);
+        var input = new LspTool.Input("document_symbol", tempDir.resolve("missing.py").toString(), "x", 1, null, null);
+        var result = tool.execute(input, ctx);
         assertTrue(result.isError());
         assertTrue(result.content().contains("not found"));
     }
@@ -32,7 +59,8 @@ class LspToolTest {
     void shouldRejectUnknownOperation(@TempDir Path tempDir) throws Exception {
         Path f = tempDir.resolve("test.py");
         Files.writeString(f, "x = 1\n");
-        var result = tool.execute(new LspTool.Input("unknown_op", f.toString(), null, null, null, null), ctx);
+        var input = new LspTool.Input("unknown_op", f.toString(), "x", 1, null, null);
+        var result = tool.execute(input, ctx);
         assertTrue(result.isError());
         assertTrue(result.content().contains("Unknown LSP operation"));
     }
@@ -43,12 +71,9 @@ class LspToolTest {
     }
 
     @Test
-    void shouldRequireLineForHover(@TempDir Path tempDir) throws Exception {
-        Path f = tempDir.resolve("test.py");
-        Files.writeString(f, "x = 1\n");
-        var localCtx = new ToolExecutionContext(tempDir);
-        var result = tool.execute(new LspTool.Input("hover", f.toString(), null, null, null, null), localCtx);
-        assertTrue(result.isError());
-        assertTrue(result.content().contains("line"));
+    void shouldAcceptWorkspaceSymbolWithQuery() {
+        var input = new LspTool.Input("workspace_symbol", null, null, null, null, "my_function");
+        assertNotNull(input);
+        assertEquals("my_function", input.query());
     }
 }

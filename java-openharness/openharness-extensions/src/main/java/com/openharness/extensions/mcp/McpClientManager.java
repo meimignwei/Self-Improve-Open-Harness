@@ -251,6 +251,17 @@ public class McpClientManager implements com.openharness.common.McpClient {
         return conn.resources();
     }
 
+    /**
+     * List MCP resources from all connected servers (matching Python's list_resources).
+     */
+    @Override
+    public List<McpClient.McpResourceInfo> listResources() {
+        return connections.values().stream()
+                .filter(c -> c.state() == ConnectionState.CONNECTED)
+                .flatMap(c -> c.resources().stream())
+                .toList();
+    }
+
     @Override
     public String readResource(String serverName, String uri) {
         McpConnectionState conn = connections.get(serverName);
@@ -364,6 +375,13 @@ public class McpClientManager implements com.openharness.common.McpClient {
      */
     public Map<String, McpServerConfig> getServerConfigs() {
         return Map.copyOf(serverConfigs);
+    }
+
+    /**
+     * Get a specific server config by name (matching Python's get_server_config).
+     */
+    public McpServerConfig getServerConfig(String name) {
+        return serverConfigs.get(name);
     }
 
     // ── JSON-RPC helpers ─────────────────────────────────────────────

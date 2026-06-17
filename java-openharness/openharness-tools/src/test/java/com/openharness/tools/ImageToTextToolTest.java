@@ -7,6 +7,7 @@ import org.junit.jupiter.api.io.TempDir;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Base64;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -17,31 +18,30 @@ class ImageToTextToolTest {
 
     @Test
     void shouldRejectMissingImageDataAndPath() {
-        var result = tool.execute(new ImageToTextTool.Input(null, null, null, null, 100, null, null, null), ctx);
+        var result = tool.execute(new ImageToTextTool.Input(null, null, null, null, 100), ctx);
         assertTrue(result.isError());
         assertTrue(result.content().contains("image_data") || result.content().contains("image_path"));
     }
 
     @Test
-    void shouldAcceptBase64Data() {
+    void shouldRejectMissingVisionConfig() {
         String b64 = Base64.getEncoder().encodeToString(new byte[]{0, 1, 2});
-        var result = tool.execute(new ImageToTextTool.Input(b64, null, null, "image/png", 100, null, null, null), ctx);
-        // Will fail on API key, but should not fail on input validation
+        var result = tool.execute(new ImageToTextTool.Input(b64, null, null, "image/png", 100), ctx);
         assertTrue(result.isError());
-        assertTrue(result.content().contains("API key") || result.content().contains("not configured"));
+        assertTrue(result.content().contains("not configured"));
     }
 
     @Test
     void shouldReadImageFromPath(@TempDir Path tempDir) throws Exception {
         Path img = tempDir.resolve("test.png");
         Files.write(img, new byte[]{0, 1, 2});
-        var result = tool.execute(new ImageToTextTool.Input(null, img.toString(), null, null, 100, null, null, null), ctx);
-        // Will fail on API key
+        var result = tool.execute(new ImageToTextTool.Input(null, img.toString(), null, null, 100), ctx);
+        // Will fail on missing vision config
         assertTrue(result.isError());
     }
 
     @Test
     void isReadOnlyShouldReturnTrue() {
-        assertTrue(tool.isReadOnly(new ImageToTextTool.Input(null, null, null, null, 100, null, null, null)));
+        assertTrue(tool.isReadOnly(new ImageToTextTool.Input(null, null, null, null, 100)));
     }
 }

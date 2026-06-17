@@ -27,8 +27,8 @@ public class SendMessageTool extends BaseTool<SendMessageTool.Input> {
     @Override
     public ToolResult execute(Input args, ToolExecutionContext ctx) {
         // Swarm agents use agent_id format (name@team); legacy tasks use plain task IDs
-        if (args.to().contains("@")) {
-            return sendSwarmMessage(args.to(), args.message());
+        if (args.taskId().contains("@")) {
+            return sendSwarmMessage(args.taskId(), args.message());
         }
 
         // Legacy task-based messaging
@@ -36,8 +36,8 @@ public class SendMessageTool extends BaseTool<SendMessageTool.Input> {
             return ToolResult.error("No message sender configured.");
         }
         try {
-            sender.send(args.to(), args.message());
-            return ToolResult.success("Sent message to task " + args.to());
+            sender.send(args.taskId(), args.message());
+            return ToolResult.success("Sent message to task " + args.taskId());
         } catch (Exception e) {
             return ToolResult.error("Failed to send message: " + e.getMessage());
         }
@@ -64,9 +64,9 @@ public class SendMessageTool extends BaseTool<SendMessageTool.Input> {
         return false;
     }
 
-    public record Input(String to, String message) {
+    public record Input(String taskId, String message) {
         public Input {
-            if (to == null || to.isBlank()) throw new IllegalArgumentException("to is required");
+            if (taskId == null || taskId.isBlank()) throw new IllegalArgumentException("taskId is required");
             if (message == null || message.isBlank()) throw new IllegalArgumentException("message is required");
         }
     }

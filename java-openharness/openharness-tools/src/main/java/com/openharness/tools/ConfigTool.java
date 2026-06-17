@@ -55,13 +55,13 @@ public class ConfigTool extends BaseTool<ConfigTool.Input> {
         try {
             for (int i = 0; i < parts.length - 1; i++) {
                 target = callGetter(target, parts[i]);
-                if (target == null) return "Error: unknown config key segment: " + parts[i];
+                if (target == null) return "Unknown config key: " + path;
             }
             String leaf = parts[parts.length - 1];
             Object current = callGetter(target, leaf);
             Object coerced = coerce(valueStr, current);
             callSetter(target, leaf, coerced);
-            return "Updated " + path + " = " + coerced;
+            return "Updated " + path;
         } catch (Exception e) {
             return "Error: " + e.getMessage();
         }

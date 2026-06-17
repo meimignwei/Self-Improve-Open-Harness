@@ -23,17 +23,16 @@ class TeamToolsTest {
     @Test
     void teamCreateShouldReturnTeamId() {
         var tool = new TeamTools.TeamCreateTool(teamRegistry);
-        var result = tool.execute(new TeamTools.TeamCreateTool.Input("alpha"), ctx);
+        var result = tool.execute(new TeamTools.TeamCreateTool.Input("alpha", null), ctx);
 
         assertFalse(result.isError());
         assertTrue(result.content().contains("alpha"));
-        assertTrue(result.content().contains("id:"));
     }
 
     @Test
     void teamCreateShouldDefaultName() {
         var tool = new TeamTools.TeamCreateTool(teamRegistry);
-        var result = tool.execute(new TeamTools.TeamCreateTool.Input(null), ctx);
+        var result = tool.execute(new TeamTools.TeamCreateTool.Input(null, null), ctx);
 
         assertFalse(result.isError());
         assertTrue(result.content().contains("untitled"));
@@ -42,7 +41,7 @@ class TeamToolsTest {
     @Test
     void teamDeleteShouldRemoveTeam() {
         var create = new TeamTools.TeamCreateTool(teamRegistry);
-        var created = create.execute(new TeamTools.TeamCreateTool.Input("beta"), ctx);
+        var created = create.execute(new TeamTools.TeamCreateTool.Input("beta", null), ctx);
         assertFalse(created.isError());
 
         var team = teamRegistry.listTeams().getFirst();

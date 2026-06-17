@@ -29,7 +29,7 @@ class RemoteTriggerToolTest {
     void shouldErrorWhenJobHasNoCommand() {
         CronJobRegistry registry = new CronJobRegistry() {
             @Override public CronJob getJob(String name) {
-                return new CronJob(name, "0 0 * * *", "", true, "UTC", "test", null, null);
+                return new CronJob(name, "0 0 * * *", "", true, "UTC", "test", null, null, null);
             }
         };
 

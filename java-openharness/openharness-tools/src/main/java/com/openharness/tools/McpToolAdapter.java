@@ -50,16 +50,35 @@ public class McpToolAdapter extends BaseTool<JsonNode> {
     }
 
     private static String sanitizeName(McpToolInfo info) {
-        String server = info.serverName().replaceAll("[^a-zA-Z0-9_]", "_");
-        String name = info.name().replaceAll("[^a-zA-Z0-9_]", "_");
-        return "mcp_" + server + "_" + name;
+        String server = sanitizeSegment(info.serverName());
+        String name = sanitizeSegment(info.name());
+        return "mcp__" + server + "__" + name;
+    }
+
+    /**
+     * Sanitize a tool name segment matching Python's _sanitize_tool_segment.
+     */
+    private static String sanitizeSegment(String value) {
+        String sanitized = value.replaceAll("[^A-Za-z0-9_]", "_");
+        if (sanitized.isEmpty()) {
+            return "tool";
+        }
+        if (!Character.isLetter(sanitized.charAt(0))) {
+            return "mcp_" + sanitized;
+        }
+        return sanitized;
     }
 
     private static String buildDescription(McpToolInfo info) {
         String desc = info.description();
         if (desc == null || desc.isBlank()) {
-            desc = "MCP tool from server " + info.serverName();
+            desc = "MCP tool " + info.name();
         }
-        return "[MCP:" + info.serverName() + "] " + desc;
+        var sb = new StringBuilder("[MCP:").append(info.serverName()).append("] ").append(desc);
+        // Include input schema so the LLM sees the tool's actual parameters
+        if (info.inputSchema() != null && !info.inputSchema().isEmpty()) {
+            sb.append("\nParameters: ").append(info.inputSchema().toString());
+        }
+        return sb.toString();
     }
 }
